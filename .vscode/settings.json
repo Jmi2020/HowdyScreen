@@ -1,0 +1,13 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPath": "/Users/silverlinings/esp/v5.4/esp-idf",
+  "idf.pythonInstallPath": "/Users/silverlinings/anaconda3/bin/python3",
+  "idf.openOcdConfigs": [
+    "board/esp32p4-builtin.cfg"
+  ],
+  "idf.port": "/dev/tty.debug-console",
+  "idf.toolsPath": "/Users/silverlinings/.espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32p4"
+  }
+}

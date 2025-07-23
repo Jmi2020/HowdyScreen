@@ -1,0 +1,11 @@
+file(REMOVE_RECURSE
+  "config/sdkconfig.h"
+  "config/sdkconfig.cmake"
+  "bootloader/bootloader.elf"
+  "bootloader/bootloader.bin"
+  "bootloader/bootloader.map"
+  "HowdyScreen.bin"
+  "flash_project_args"
+  "HowdyScreen.map"
+  "project_elf_src_esp32p4.c"
+)

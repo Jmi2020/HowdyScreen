@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(idf.py build:*)",
+      "Bash(cp:*)",
+      "Bash(idf.py clean:*)",
+      "Bash(git submodule add:*)"
+    ],
+    "deny": []
+  }
+}

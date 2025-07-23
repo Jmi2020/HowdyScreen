@@ -1,0 +1,36 @@
+esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/proto-c/sec1.pb-c.c.obj: \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/protocomm/proto-c/sec1.pb-c.c \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/protocomm/proto-c/sec1.pb-c.h \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/protobuf-c/protobuf-c/protobuf-c/protobuf-c.h \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/newlib/platform_include/assert.h \
+ /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/config/sdkconfig.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/stdlib.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/machine/ieeefp.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/_ansi.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/newlib.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/_newlib_version.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/config.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/features.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/lib/gcc/riscv32-esp-elf/14.2.0/include/stddef.h \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/newlib/platform_include/sys/reent.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/reent.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/_ansi.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/_types.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/machine/_types.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/machine/_default_types.h \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/newlib/platform_include/sys/lock.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/lock.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/cdefs.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/machine/stdlib.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/alloca.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/_locale.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/lib/gcc/riscv32-esp-elf/14.2.0/include/stdint.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/stdint.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/_intsup.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/_stdint.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/assert.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/lib/gcc/riscv32-esp-elf/14.2.0/include/limits.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/lib/gcc/riscv32-esp-elf/14.2.0/include/syslimits.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/limits.h \
+ /Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/riscv32-esp-elf/include/sys/syslimits.h \
+ /Users/silverlinings/esp/v5.4/esp-idf/components/protocomm/proto-c/constants.pb-c.h
