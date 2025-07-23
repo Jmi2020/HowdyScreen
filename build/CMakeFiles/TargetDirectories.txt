@@ -823,6 +823,13 @@
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/wifi_provisioning/CMakeFiles/install.dir
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/wifi_provisioning/CMakeFiles/install/local.dir
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/wifi_provisioning/CMakeFiles/install/strip.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/edit_cache.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/rebuild_cache.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/list_install_components.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/install.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/install/local.dir
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/CMakeFiles/install/strip.dir
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/main/CMakeFiles/__idf_main.dir
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/main/CMakeFiles/edit_cache.dir
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/main/CMakeFiles/rebuild_cache.dir

@@ -175,6 +175,102 @@ __idf_main/fast:
 	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/build
 .PHONY : __idf_main/fast
 
+audio_pipeline.obj: audio_pipeline.c.obj
+.PHONY : audio_pipeline.obj
+
+# target to build an object file
+audio_pipeline.c.obj:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/audio_pipeline.c.obj
+.PHONY : audio_pipeline.c.obj
+
+audio_pipeline.i: audio_pipeline.c.i
+.PHONY : audio_pipeline.i
+
+# target to preprocess a source file
+audio_pipeline.c.i:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/audio_pipeline.c.i
+.PHONY : audio_pipeline.c.i
+
+audio_pipeline.s: audio_pipeline.c.s
+.PHONY : audio_pipeline.s
+
+# target to generate assembly for a file
+audio_pipeline.c.s:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/audio_pipeline.c.s
+.PHONY : audio_pipeline.c.s
+
+display_manager.obj: display_manager.c.obj
+.PHONY : display_manager.obj
+
+# target to build an object file
+display_manager.c.obj:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/display_manager.c.obj
+.PHONY : display_manager.c.obj
+
+display_manager.i: display_manager.c.i
+.PHONY : display_manager.i
+
+# target to preprocess a source file
+display_manager.c.i:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/display_manager.c.i
+.PHONY : display_manager.c.i
+
+display_manager.s: display_manager.c.s
+.PHONY : display_manager.s
+
+# target to generate assembly for a file
+display_manager.c.s:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/display_manager.c.s
+.PHONY : display_manager.c.s
+
+led_controller.obj: led_controller.c.obj
+.PHONY : led_controller.obj
+
+# target to build an object file
+led_controller.c.obj:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_controller.c.obj
+.PHONY : led_controller.c.obj
+
+led_controller.i: led_controller.c.i
+.PHONY : led_controller.i
+
+# target to preprocess a source file
+led_controller.c.i:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_controller.c.i
+.PHONY : led_controller.c.i
+
+led_controller.s: led_controller.c.s
+.PHONY : led_controller.s
+
+# target to generate assembly for a file
+led_controller.c.s:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_controller.c.s
+.PHONY : led_controller.c.s
+
+led_strip_encoder.obj: led_strip_encoder.c.obj
+.PHONY : led_strip_encoder.obj
+
+# target to build an object file
+led_strip_encoder.c.obj:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_strip_encoder.c.obj
+.PHONY : led_strip_encoder.c.obj
+
+led_strip_encoder.i: led_strip_encoder.c.i
+.PHONY : led_strip_encoder.i
+
+# target to preprocess a source file
+led_strip_encoder.c.i:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_strip_encoder.c.i
+.PHONY : led_strip_encoder.c.i
+
+led_strip_encoder.s: led_strip_encoder.c.s
+.PHONY : led_strip_encoder.s
+
+# target to generate assembly for a file
+led_strip_encoder.c.s:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/led_strip_encoder.c.s
+.PHONY : led_strip_encoder.c.s
+
 main.obj: main.c.obj
 .PHONY : main.obj
 
@@ -199,6 +295,30 @@ main.c.s:
 	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/main.c.s
 .PHONY : main.c.s
 
+network_manager.obj: network_manager.c.obj
+.PHONY : network_manager.obj
+
+# target to build an object file
+network_manager.c.obj:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/network_manager.c.obj
+.PHONY : network_manager.c.obj
+
+network_manager.i: network_manager.c.i
+.PHONY : network_manager.i
+
+# target to preprocess a source file
+network_manager.c.i:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/network_manager.c.i
+.PHONY : network_manager.c.i
+
+network_manager.s: network_manager.c.s
+.PHONY : network_manager.s
+
+# target to generate assembly for a file
+network_manager.c.s:
+	cd /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build && $(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/network_manager.c.s
+.PHONY : network_manager.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -212,9 +332,24 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... __idf_main"
+	@echo "... audio_pipeline.obj"
+	@echo "... audio_pipeline.i"
+	@echo "... audio_pipeline.s"
+	@echo "... display_manager.obj"
+	@echo "... display_manager.i"
+	@echo "... display_manager.s"
+	@echo "... led_controller.obj"
+	@echo "... led_controller.i"
+	@echo "... led_controller.s"
+	@echo "... led_strip_encoder.obj"
+	@echo "... led_strip_encoder.i"
+	@echo "... led_strip_encoder.s"
 	@echo "... main.obj"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... network_manager.obj"
+	@echo "... network_manager.i"
+	@echo "... network_manager.s"
 .PHONY : help
 
 

@@ -83,4 +83,5 @@
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/rt/librt.a
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/spiffs/libspiffs.a
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/usb/libusb.a
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/liblvgl.a
 /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/main/libmain.a

@@ -1,4 +1,9 @@
 idf_component_register(SRCS "main.c"
+                             "audio_pipeline.c"
+                             "network_manager.c"
+                             "display_manager.c"
+                             "led_controller.c"
+                             "led_strip_encoder.c"
                     INCLUDE_DIRS "."
                     REQUIRES 
                         "esp_wifi"
@@ -8,4 +13,4 @@ idf_component_register(SRCS "main.c"
                         "json"
                         "driver"
                         "esp_common"
-)
+                        "lvgl")

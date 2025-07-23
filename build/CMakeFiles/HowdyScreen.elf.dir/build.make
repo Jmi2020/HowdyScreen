@@ -181,6 +181,7 @@ HowdyScreen.elf: esp-idf/nvs_sec_provider/libnvs_sec_provider.a
 HowdyScreen.elf: esp-idf/rt/librt.a
 HowdyScreen.elf: esp-idf/spiffs/libspiffs.a
 HowdyScreen.elf: esp-idf/usb/libusb.a
+HowdyScreen.elf: esp-idf/lvgl/liblvgl.a
 HowdyScreen.elf: esp-idf/main/libmain.a
 HowdyScreen.elf: esp-idf/app_trace/libapp_trace.a
 HowdyScreen.elf: esp-idf/unity/libunity.a
@@ -191,6 +192,7 @@ HowdyScreen.elf: esp-idf/protocomm/libprotocomm.a
 HowdyScreen.elf: esp-idf/console/libconsole.a
 HowdyScreen.elf: esp-idf/protobuf-c/libprotobuf-c.a
 HowdyScreen.elf: esp-idf/json/libjson.a
+HowdyScreen.elf: esp-idf/lvgl/liblvgl.a
 HowdyScreen.elf: esp-idf/riscv/libriscv.a
 HowdyScreen.elf: esp-idf/esp_driver_gpio/libesp_driver_gpio.a
 HowdyScreen.elf: esp-idf/esp_pm/libesp_pm.a

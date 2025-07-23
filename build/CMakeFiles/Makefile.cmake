@@ -49,6 +49,8 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/Users/silverlinings/.espressif/tools/cmake/3.30.2/CMake.app/Contents/share/cmake-3.30/Modules/Internal/CheckSourceCompiles.cmake"
   "/Users/silverlinings/.espressif/tools/cmake/3.30.2/CMake.app/Contents/share/cmake-3.30/Modules/Platform/Generic.cmake"
   "/Users/silverlinings/.espressif/tools/cmake/3.30.2/CMake.app/Contents/share/cmake-3.30/Modules/WriteBasicConfigVersionFile.cmake"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/.git/HEAD"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/.git/refs/heads/main"
   "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/CMakeLists.txt"
   "CMakeFiles/3.30.2/CMakeASMCompiler.cmake"
   "CMakeFiles/3.30.2/CMakeCCompiler.cmake"
@@ -67,6 +69,9 @@ set(CMAKE_MAKEFILE_DEPENDS
   "flash_args"
   "flash_args.in"
   "ldgen_libraries.in"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/components/lvgl/CMakeLists.txt"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/components/lvgl/env_support/cmake/esp.cmake"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/components/lvgl/idf_component.yml"
   "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/CMakeLists.txt"
   "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/sdkconfig"
   "/Users/silverlinings/esp/v5.4/esp-idf/.git/HEAD"
@@ -280,6 +285,9 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/git-data/HEAD"
   "CMakeFiles/git-data/grabRef.cmake"
   "CMakeFiles/git-data/head-ref"
+  "CMakeFiles/git-data/HEAD"
+  "CMakeFiles/git-data/grabRef.cmake"
+  "CMakeFiles/git-data/head-ref"
   "config.env"
   "bootloader-prefix/tmp/bootloader-mkdirs.cmake"
   "bootloader-prefix/src/bootloader-stamp/bootloader-source_dirinfo.txt"
@@ -417,6 +425,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "esp-idf/ulp/CMakeFiles/CMakeDirectoryInformation.cmake"
   "esp-idf/usb/CMakeFiles/CMakeDirectoryInformation.cmake"
   "esp-idf/wifi_provisioning/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "esp-idf/lvgl/CMakeFiles/CMakeDirectoryInformation.cmake"
   "esp-idf/main/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
@@ -557,5 +566,6 @@ set(CMAKE_DEPEND_INFO_FILES
   "esp-idf/rt/CMakeFiles/__idf_rt.dir/DependInfo.cmake"
   "esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/DependInfo.cmake"
   "esp-idf/usb/CMakeFiles/__idf_usb.dir/DependInfo.cmake"
+  "esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/DependInfo.cmake"
   "esp-idf/main/CMakeFiles/__idf_main.dir/DependInfo.cmake"
   )

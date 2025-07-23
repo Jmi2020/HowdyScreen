@@ -8,7 +8,12 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/audio_pipeline.c" "esp-idf/main/CMakeFiles/__idf_main.dir/audio_pipeline.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/audio_pipeline.c.obj.d"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/display_manager.c" "esp-idf/main/CMakeFiles/__idf_main.dir/display_manager.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/display_manager.c.obj.d"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/led_controller.c" "esp-idf/main/CMakeFiles/__idf_main.dir/led_controller.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/led_controller.c.obj.d"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/led_strip_encoder.c" "esp-idf/main/CMakeFiles/__idf_main.dir/led_strip_encoder.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/led_strip_encoder.c.obj.d"
   "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/main.c" "esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj.d"
+  "/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/main/network_manager.c" "esp-idf/main/CMakeFiles/__idf_main.dir/network_manager.c.obj" "gcc" "esp-idf/main/CMakeFiles/__idf_main.dir/network_manager.c.obj.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

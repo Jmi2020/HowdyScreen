@@ -204,6 +204,7 @@ esp-idf/esp_system/ld/sections.ld: esp-idf/nvs_sec_provider/libnvs_sec_provider.
 esp-idf/esp_system/ld/sections.ld: esp-idf/rt/librt.a
 esp-idf/esp_system/ld/sections.ld: esp-idf/spiffs/libspiffs.a
 esp-idf/esp_system/ld/sections.ld: esp-idf/usb/libusb.a
+esp-idf/esp_system/ld/sections.ld: esp-idf/lvgl/liblvgl.a
 esp-idf/esp_system/ld/sections.ld: esp-idf/main/libmain.a
 esp-idf/esp_system/ld/sections.ld: /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/sdkconfig
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating ld/sections.ld"

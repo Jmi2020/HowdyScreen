@@ -204,6 +204,7 @@ esp-idf/all: esp-idf/spiffs/all
 esp-idf/all: esp-idf/ulp/all
 esp-idf/all: esp-idf/usb/all
 esp-idf/all: esp-idf/wifi_provisioning/all
+esp-idf/all: esp-idf/lvgl/all
 esp-idf/all: esp-idf/main/all
 .PHONY : esp-idf/all
 
@@ -309,6 +310,7 @@ esp-idf/preinstall: esp-idf/spiffs/preinstall
 esp-idf/preinstall: esp-idf/ulp/preinstall
 esp-idf/preinstall: esp-idf/usb/preinstall
 esp-idf/preinstall: esp-idf/wifi_provisioning/preinstall
+esp-idf/preinstall: esp-idf/lvgl/preinstall
 esp-idf/preinstall: esp-idf/main/preinstall
 .PHONY : esp-idf/preinstall
 
@@ -414,6 +416,7 @@ esp-idf/clean: esp-idf/spiffs/clean
 esp-idf/clean: esp-idf/ulp/clean
 esp-idf/clean: esp-idf/usb/clean
 esp-idf/clean: esp-idf/wifi_provisioning/clean
+esp-idf/clean: esp-idf/lvgl/clean
 esp-idf/clean: esp-idf/main/clean
 .PHONY : esp-idf/clean
 
@@ -1641,6 +1644,21 @@ esp-idf/log/clean: esp-idf/log/CMakeFiles/__idf_log.dir/clean
 .PHONY : esp-idf/log/clean
 
 #=============================================================================
+# Directory level rules for directory esp-idf/lvgl
+
+# Recursive "all" directory target.
+esp-idf/lvgl/all: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
+.PHONY : esp-idf/lvgl/all
+
+# Recursive "preinstall" directory target.
+esp-idf/lvgl/preinstall:
+.PHONY : esp-idf/lvgl/preinstall
+
+# Recursive "clean" directory target.
+esp-idf/lvgl/clean: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/clean
+.PHONY : esp-idf/lvgl/clean
+
+#=============================================================================
 # Directory level rules for directory esp-idf/lwip
 
 # Recursive "all" directory target.
@@ -2264,12 +2282,12 @@ CMakeFiles/save-defconfig.dir/clean:
 CMakeFiles/bootloader.dir/all: esp-idf/partition_table/CMakeFiles/partition_table_bin.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/bootloader.dir/build.make CMakeFiles/bootloader.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/bootloader.dir/build.make CMakeFiles/bootloader.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target bootloader"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=89 "Built target bootloader"
 .PHONY : CMakeFiles/bootloader.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/bootloader.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/bootloader.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : CMakeFiles/bootloader.dir/rule
@@ -2375,7 +2393,7 @@ CMakeFiles/merge-bin.dir/all: CMakeFiles/gen_project_binary.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/merge-bin.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 98
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 99
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/merge-bin.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : CMakeFiles/merge-bin.dir/rule
@@ -2429,7 +2447,7 @@ CMakeFiles/flash.dir/all: esp-idf/partition_table/CMakeFiles/partition_table_bin
 
 # Build rule for subdir invocation for target.
 CMakeFiles/flash.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 98
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 99
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/flash.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : CMakeFiles/flash.dir/rule
@@ -2527,6 +2545,7 @@ CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/nvs_sec_provider/CMakeFiles/__idf_nv
 CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/rt/CMakeFiles/__idf_rt.dir/all
 CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/all
 CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/usb/CMakeFiles/__idf_usb.dir/all
+CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
 CMakeFiles/HowdyScreen.elf.dir/all: esp-idf/main/CMakeFiles/__idf_main.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HowdyScreen.elf.dir/build.make CMakeFiles/HowdyScreen.elf.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/HowdyScreen.elf.dir/build.make CMakeFiles/HowdyScreen.elf.dir/build
@@ -2640,7 +2659,7 @@ CMakeFiles/dfu.dir/all: CMakeFiles/gen_project_binary.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/dfu.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 98
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 99
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/dfu.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : CMakeFiles/dfu.dir/rule
@@ -2765,12 +2784,12 @@ CMakeFiles/uf2-app.dir/clean:
 esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all: esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/riscv/CMakeFiles/__idf_riscv.dir/build.make esp-idf/riscv/CMakeFiles/__idf_riscv.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/riscv/CMakeFiles/__idf_riscv.dir/build.make esp-idf/riscv/CMakeFiles/__idf_riscv.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=72 "Built target __idf_riscv"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_riscv"
 .PHONY : esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/riscv/CMakeFiles/__idf_riscv.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/riscv/CMakeFiles/__idf_riscv.dir/rule
@@ -2791,12 +2810,12 @@ esp-idf/riscv/CMakeFiles/__idf_riscv.dir/clean:
 esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/all: esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/build.make esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/build.make esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=11 "Built target __idf_esp_driver_gpio"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=8 "Built target __idf_esp_driver_gpio"
 .PHONY : esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 78
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_gpio/CMakeFiles/__idf_esp_driver_gpio.dir/rule
@@ -2822,7 +2841,7 @@ esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/all: esp-idf/mbedtls/CMakeFiles/__idf
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 77
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/rule
@@ -2843,12 +2862,12 @@ esp-idf/esp_pm/CMakeFiles/__idf_esp_pm.dir/clean:
 esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/all: esp-idf/mbedtls/mbedtls/3rdparty/everest/CMakeFiles/everest.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/build.make esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/build.make esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=65 "Built target __idf_mbedtls"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_mbedtls"
 .PHONY : esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 77
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/CMakeFiles/__idf_mbedtls.dir/rule
@@ -2926,7 +2945,7 @@ esp-idf/mbedtls/mbedtls/3rdparty/everest/CMakeFiles/everest.dir/all: esp-idf/mbe
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/3rdparty/everest/CMakeFiles/everest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 76
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/3rdparty/everest/CMakeFiles/everest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/3rdparty/everest/CMakeFiles/everest.dir/rule
@@ -2952,7 +2971,7 @@ esp-idf/mbedtls/mbedtls/3rdparty/p256-m/CMakeFiles/p256m.dir/all: esp-idf/mbedtl
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/3rdparty/p256-m/CMakeFiles/p256m.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 76
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/3rdparty/p256-m/CMakeFiles/p256m.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/3rdparty/p256-m/CMakeFiles/p256m.dir/rule
@@ -2973,12 +2992,12 @@ esp-idf/mbedtls/mbedtls/3rdparty/p256-m/CMakeFiles/p256m.dir/clean:
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/all: esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/build.make esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/build.make esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=86,87,88,89,90,91,92,93,94,95,96 "Built target mbedcrypto"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=90,91,92,93,94,95,96,97 "Built target mbedcrypto"
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 76
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/rule
@@ -3004,7 +3023,7 @@ esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/all: esp-idf/mbedtls/mbe
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 45
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/rule
@@ -3025,12 +3044,12 @@ esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedx509.dir/clean:
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/all: esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/build.make esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/build.make esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=97,98 "Built target mbedtls"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=98 "Built target mbedtls"
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 64
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 44
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedtls.dir/rule
@@ -3056,7 +3075,7 @@ esp-idf/mbedtls/mbedtls/library/CMakeFiles/lib.dir/all: esp-idf/riscv/CMakeFiles
 
 # Build rule for subdir invocation for target.
 esp-idf/mbedtls/mbedtls/library/CMakeFiles/lib.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mbedtls/mbedtls/library/CMakeFiles/lib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mbedtls/mbedtls/library/CMakeFiles/lib.dir/rule
@@ -3082,7 +3101,7 @@ esp-idf/bootloader/CMakeFiles/bootloader-flash.dir/all: CMakeFiles/bootloader.di
 
 # Build rule for subdir invocation for target.
 esp-idf/bootloader/CMakeFiles/bootloader-flash.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/bootloader/CMakeFiles/bootloader-flash.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/bootloader/CMakeFiles/bootloader-flash.dir/rule
@@ -3369,7 +3388,7 @@ esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/all: esp-idf/esp_boot
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 62
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 43
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/rule
@@ -3395,7 +3414,7 @@ esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/all: es
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 62
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 43
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/rule
@@ -3416,12 +3435,12 @@ esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/clean:
 esp-idf/app_update/CMakeFiles/__idf_app_update.dir/all: esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/app_update/CMakeFiles/__idf_app_update.dir/build.make esp-idf/app_update/CMakeFiles/__idf_app_update.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/app_update/CMakeFiles/__idf_app_update.dir/build.make esp-idf/app_update/CMakeFiles/__idf_app_update.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=1 "Built target __idf_app_update"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_app_update"
 .PHONY : esp-idf/app_update/CMakeFiles/__idf_app_update.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/app_update/CMakeFiles/__idf_app_update.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 62
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 43
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/app_update/CMakeFiles/__idf_app_update.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/app_update/CMakeFiles/__idf_app_update.dir/rule
@@ -3442,12 +3461,12 @@ esp-idf/app_update/CMakeFiles/__idf_app_update.dir/clean:
 esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/all: esp-idf/efuse/CMakeFiles/__idf_efuse.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/build.make esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/build.make esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=35 "Built target __idf_esp_partition"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_partition"
 .PHONY : esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 61
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 43
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/rule
@@ -3468,12 +3487,12 @@ esp-idf/esp_partition/CMakeFiles/__idf_esp_partition.dir/clean:
 esp-idf/efuse/CMakeFiles/__idf_efuse.dir/all: esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/efuse/CMakeFiles/__idf_efuse.dir/build.make esp-idf/efuse/CMakeFiles/__idf_efuse.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/efuse/CMakeFiles/__idf_efuse.dir/build.make esp-idf/efuse/CMakeFiles/__idf_efuse.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=7 "Built target __idf_efuse"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=5 "Built target __idf_efuse"
 .PHONY : esp-idf/efuse/CMakeFiles/__idf_efuse.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/efuse/CMakeFiles/__idf_efuse.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 43
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/efuse/CMakeFiles/__idf_efuse.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/efuse/CMakeFiles/__idf_efuse.dir/rule
@@ -3520,12 +3539,12 @@ esp-idf/efuse/CMakeFiles/efuse-common-table.dir/clean:
 esp-idf/efuse/CMakeFiles/efuse_common_table.dir/all: esp-idf/efuse/CMakeFiles/efuse-common-table.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/efuse/CMakeFiles/efuse_common_table.dir/build.make esp-idf/efuse/CMakeFiles/efuse_common_table.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/efuse/CMakeFiles/efuse_common_table.dir/build.make esp-idf/efuse/CMakeFiles/efuse_common_table.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=85 "Built target efuse_common_table"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target efuse_common_table"
 .PHONY : esp-idf/efuse/CMakeFiles/efuse_common_table.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/efuse/CMakeFiles/efuse_common_table.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/efuse/CMakeFiles/efuse_common_table.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/efuse/CMakeFiles/efuse_common_table.dir/rule
@@ -3676,12 +3695,12 @@ esp-idf/efuse/CMakeFiles/efuse_test_table.dir/clean:
 esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/all: esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/build.make esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/build.make esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=2 "Built target __idf_bootloader_support"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=1,2 "Built target __idf_bootloader_support"
 .PHONY : esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 42
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/rule
@@ -3707,7 +3726,7 @@ esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/all: esp-idf/spi_flash/CMakeFiles/__i
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 58
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 40
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/rule
@@ -3728,12 +3747,12 @@ esp-idf/esp_mm/CMakeFiles/__idf_esp_mm.dir/clean:
 esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/all: esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/build.make esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/build.make esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=78,79 "Built target __idf_spi_flash"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=84 "Built target __idf_spi_flash"
 .PHONY : esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 58
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 40
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/rule
@@ -3754,12 +3773,12 @@ esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/clean:
 esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/all: esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/build.make esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/build.make esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=38,39,40 "Built target __idf_esp_system"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=28,29 "Built target __idf_esp_system"
 .PHONY : esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 56
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 39
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/rule
@@ -3855,10 +3874,11 @@ esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/nvs_se
 esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/rt/CMakeFiles/__idf_rt.dir/all
 esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/all
 esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/usb/CMakeFiles/__idf_usb.dir/all
+esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
 esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all: esp-idf/main/CMakeFiles/__idf_main.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/build.make esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/build.make esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=84 "Built target __ldgen_output_sections.ld"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __ldgen_output_sections.ld"
 .PHONY : esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/all
 
 # Build rule for subdir invocation for target.
@@ -3884,12 +3904,12 @@ esp-idf/esp_system/CMakeFiles/__ldgen_output_sections.ld.dir/clean:
 esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/all: esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/build.make esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/build.make esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_common"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=7 "Built target __idf_esp_common"
 .PHONY : esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 37
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/rule
@@ -3910,12 +3930,12 @@ esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/clean:
 esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/all: esp-idf/hal/CMakeFiles/__idf_hal.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/build.make esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/build.make esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=36 "Built target __idf_esp_rom"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_rom"
 .PHONY : esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 53
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 36
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/rule
@@ -3936,12 +3956,12 @@ esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/clean:
 esp-idf/hal/CMakeFiles/__idf_hal.dir/all: esp-idf/log/CMakeFiles/__idf_log.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/hal/CMakeFiles/__idf_hal.dir/build.make esp-idf/hal/CMakeFiles/__idf_hal.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/hal/CMakeFiles/__idf_hal.dir/build.make esp-idf/hal/CMakeFiles/__idf_hal.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=47,48,49,50,51,52 "Built target __idf_hal"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=34,35,36,37,38 "Built target __idf_hal"
 .PHONY : esp-idf/hal/CMakeFiles/__idf_hal.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/hal/CMakeFiles/__idf_hal.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 52
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 36
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/hal/CMakeFiles/__idf_hal.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/hal/CMakeFiles/__idf_hal.dir/rule
@@ -3962,12 +3982,12 @@ esp-idf/hal/CMakeFiles/__idf_hal.dir/clean:
 esp-idf/log/CMakeFiles/__idf_log.dir/all: esp-idf/heap/CMakeFiles/__idf_heap.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/log/CMakeFiles/__idf_log.dir/build.make esp-idf/log/CMakeFiles/__idf_log.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/log/CMakeFiles/__idf_log.dir/build.make esp-idf/log/CMakeFiles/__idf_log.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=55 "Built target __idf_log"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=40 "Built target __idf_log"
 .PHONY : esp-idf/log/CMakeFiles/__idf_log.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/log/CMakeFiles/__idf_log.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 46
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 31
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/log/CMakeFiles/__idf_log.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/log/CMakeFiles/__idf_log.dir/rule
@@ -3988,12 +4008,12 @@ esp-idf/log/CMakeFiles/__idf_log.dir/clean:
 esp-idf/heap/CMakeFiles/__idf_heap.dir/all: esp-idf/soc/CMakeFiles/__idf_soc.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/heap/CMakeFiles/__idf_heap.dir/build.make esp-idf/heap/CMakeFiles/__idf_heap.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/heap/CMakeFiles/__idf_heap.dir/build.make esp-idf/heap/CMakeFiles/__idf_heap.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=53 "Built target __idf_heap"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=39 "Built target __idf_heap"
 .PHONY : esp-idf/heap/CMakeFiles/__idf_heap.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/heap/CMakeFiles/__idf_heap.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 45
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 30
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/heap/CMakeFiles/__idf_heap.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/heap/CMakeFiles/__idf_heap.dir/rule
@@ -4014,12 +4034,12 @@ esp-idf/heap/CMakeFiles/__idf_heap.dir/clean:
 esp-idf/soc/CMakeFiles/__idf_soc.dir/all: esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/soc/CMakeFiles/__idf_soc.dir/build.make esp-idf/soc/CMakeFiles/__idf_soc.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/soc/CMakeFiles/__idf_soc.dir/build.make esp-idf/soc/CMakeFiles/__idf_soc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=74,75,76,77 "Built target __idf_soc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=81,82,83 "Built target __idf_soc"
 .PHONY : esp-idf/soc/CMakeFiles/__idf_soc.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/soc/CMakeFiles/__idf_soc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 44
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 29
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/soc/CMakeFiles/__idf_soc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/soc/CMakeFiles/__idf_soc.dir/rule
@@ -4040,12 +4060,12 @@ esp-idf/soc/CMakeFiles/__idf_soc.dir/clean:
 esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/all: esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/build.make esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/build.make esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=37 "Built target __idf_esp_security"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=27 "Built target __idf_esp_security"
 .PHONY : esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 40
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 26
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/rule
@@ -4066,12 +4086,12 @@ esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/clean:
 esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/all: esp-idf/freertos/CMakeFiles/__idf_freertos.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/build.make esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/build.make esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=26,27,28,29,30,31 "Built target __idf_esp_hw_support"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=19,20,21,22 "Built target __idf_esp_hw_support"
 .PHONY : esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 39
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 25
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/rule
@@ -4092,12 +4112,12 @@ esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/clean:
 esp-idf/freertos/CMakeFiles/__idf_freertos.dir/all: esp-idf/newlib/CMakeFiles/__idf_newlib.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/freertos/CMakeFiles/__idf_freertos.dir/build.make esp-idf/freertos/CMakeFiles/__idf_freertos.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/freertos/CMakeFiles/__idf_freertos.dir/build.make esp-idf/freertos/CMakeFiles/__idf_freertos.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=45,46 "Built target __idf_freertos"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=33 "Built target __idf_freertos"
 .PHONY : esp-idf/freertos/CMakeFiles/__idf_freertos.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/freertos/CMakeFiles/__idf_freertos.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 33
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 21
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/freertos/CMakeFiles/__idf_freertos.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/freertos/CMakeFiles/__idf_freertos.dir/rule
@@ -4118,12 +4138,12 @@ esp-idf/freertos/CMakeFiles/__idf_freertos.dir/clean:
 esp-idf/newlib/CMakeFiles/__idf_newlib.dir/all: esp-idf/pthread/CMakeFiles/__idf_pthread.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/newlib/CMakeFiles/__idf_newlib.dir/build.make esp-idf/newlib/CMakeFiles/__idf_newlib.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/newlib/CMakeFiles/__idf_newlib.dir/build.make esp-idf/newlib/CMakeFiles/__idf_newlib.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=66,67 "Built target __idf_newlib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=76 "Built target __idf_newlib"
 .PHONY : esp-idf/newlib/CMakeFiles/__idf_newlib.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/newlib/CMakeFiles/__idf_newlib.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 31
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 20
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/newlib/CMakeFiles/__idf_newlib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/newlib/CMakeFiles/__idf_newlib.dir/rule
@@ -4144,12 +4164,12 @@ esp-idf/newlib/CMakeFiles/__idf_newlib.dir/clean:
 esp-idf/pthread/CMakeFiles/__idf_pthread.dir/all: esp-idf/cxx/CMakeFiles/__idf_cxx.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/pthread/CMakeFiles/__idf_pthread.dir/build.make esp-idf/pthread/CMakeFiles/__idf_pthread.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/pthread/CMakeFiles/__idf_pthread.dir/build.make esp-idf/pthread/CMakeFiles/__idf_pthread.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_pthread"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=79 "Built target __idf_pthread"
 .PHONY : esp-idf/pthread/CMakeFiles/__idf_pthread.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/pthread/CMakeFiles/__idf_pthread.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 29
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/pthread/CMakeFiles/__idf_pthread.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/pthread/CMakeFiles/__idf_pthread.dir/rule
@@ -4175,7 +4195,7 @@ esp-idf/cxx/CMakeFiles/__idf_cxx.dir/all: esp-idf/esp_timer/CMakeFiles/__idf_esp
 
 # Build rule for subdir invocation for target.
 esp-idf/cxx/CMakeFiles/__idf_cxx.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 29
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/cxx/CMakeFiles/__idf_cxx.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/cxx/CMakeFiles/__idf_cxx.dir/rule
@@ -4196,12 +4216,12 @@ esp-idf/cxx/CMakeFiles/__idf_cxx.dir/clean:
 esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/all: esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/build.make esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/build.make esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=41 "Built target __idf_esp_timer"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=30 "Built target __idf_esp_timer"
 .PHONY : esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 29
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_timer/CMakeFiles/__idf_esp_timer.dir/rule
@@ -4227,7 +4247,7 @@ esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/all: esp-idf/
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 17
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/rule
@@ -4248,12 +4268,12 @@ esp-idf/esp_driver_gptimer/CMakeFiles/__idf_esp_driver_gptimer.dir/clean:
 esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/all: esp-idf/esp_driver_uart/CMakeFiles/__idf_esp_driver_uart.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/build.make esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/build.make esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_ringbuf"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=26 "Built target __idf_esp_ringbuf"
 .PHONY : esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 17
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_ringbuf/CMakeFiles/__idf_esp_ringbuf.dir/rule
@@ -4279,7 +4299,7 @@ esp-idf/esp_driver_uart/CMakeFiles/__idf_esp_driver_uart.dir/all: esp-idf/esp_ev
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_uart/CMakeFiles/__idf_esp_driver_uart.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_uart/CMakeFiles/__idf_esp_driver_uart.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_uart/CMakeFiles/__idf_esp_driver_uart.dir/rule
@@ -4305,7 +4325,7 @@ esp-idf/app_trace/CMakeFiles/__idf_app_trace.dir/all: esp-idf/riscv/CMakeFiles/_
 
 # Build rule for subdir invocation for target.
 esp-idf/app_trace/CMakeFiles/__idf_app_trace.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/app_trace/CMakeFiles/__idf_app_trace.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/app_trace/CMakeFiles/__idf_app_trace.dir/rule
@@ -4331,7 +4351,7 @@ esp-idf/esp_event/CMakeFiles/__idf_esp_event.dir/all: esp-idf/esp_driver_usb_ser
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_event/CMakeFiles/__idf_esp_event.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_event/CMakeFiles/__idf_esp_event.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_event/CMakeFiles/__idf_esp_event.dir/rule
@@ -4352,12 +4372,12 @@ esp-idf/esp_event/CMakeFiles/__idf_esp_event.dir/clean:
 esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/all: esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/build.make esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/build.make esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_usb_serial_jtag"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=15 "Built target __idf_esp_driver_usb_serial_jtag"
 .PHONY : esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_usb_serial_jtag/CMakeFiles/__idf_esp_driver_usb_serial_jtag.dir/rule
@@ -4383,7 +4403,7 @@ esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/all: esp-idf/vfs/CM
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/rule
@@ -4404,12 +4424,12 @@ esp-idf/esp_vfs_console/CMakeFiles/__idf_esp_vfs_console.dir/clean:
 esp-idf/vfs/CMakeFiles/__idf_vfs.dir/all: esp-idf/lwip/CMakeFiles/__idf_lwip.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/vfs/CMakeFiles/__idf_vfs.dir/build.make esp-idf/vfs/CMakeFiles/__idf_vfs.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/vfs/CMakeFiles/__idf_vfs.dir/build.make esp-idf/vfs/CMakeFiles/__idf_vfs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=83 "Built target __idf_vfs"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_vfs"
 .PHONY : esp-idf/vfs/CMakeFiles/__idf_vfs.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/vfs/CMakeFiles/__idf_vfs.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/vfs/CMakeFiles/__idf_vfs.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/vfs/CMakeFiles/__idf_vfs.dir/rule
@@ -4430,12 +4450,12 @@ esp-idf/vfs/CMakeFiles/__idf_vfs.dir/clean:
 esp-idf/lwip/CMakeFiles/__idf_lwip.dir/all: esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/lwip/CMakeFiles/__idf_lwip.dir/build.make esp-idf/lwip/CMakeFiles/__idf_lwip.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/lwip/CMakeFiles/__idf_lwip.dir/build.make esp-idf/lwip/CMakeFiles/__idf_lwip.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=56,57,58,59,60,61,62,63,64 "Built target __idf_lwip"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=68,69,70,71,72,73 "Built target __idf_lwip"
 .PHONY : esp-idf/lwip/CMakeFiles/__idf_lwip.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/lwip/CMakeFiles/__idf_lwip.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 27
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/lwip/CMakeFiles/__idf_lwip.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/lwip/CMakeFiles/__idf_lwip.dir/rule
@@ -4456,12 +4476,12 @@ esp-idf/lwip/CMakeFiles/__idf_lwip.dir/clean:
 esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/all: esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/build.make esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/build.make esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=34 "Built target __idf_esp_netif"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=25 "Built target __idf_esp_netif"
 .PHONY : esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 18
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 9
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/rule
@@ -4482,12 +4502,12 @@ esp-idf/esp_netif/CMakeFiles/__idf_esp_netif.dir/clean:
 esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/all: esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/build.make esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/build.make esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=17 "Built target __idf_esp_driver_pcnt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_pcnt"
 .PHONY : esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 17
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 8
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/rule
@@ -4508,12 +4528,12 @@ esp-idf/esp_driver_pcnt/CMakeFiles/__idf_esp_driver_pcnt.dir/clean:
 esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/all: esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/build.make esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/build.make esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_spi"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=14 "Built target __idf_esp_driver_spi"
 .PHONY : esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 16
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 8
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/rule
@@ -4534,12 +4554,12 @@ esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/clean:
 esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/all: esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/build.make esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/build.make esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=16 "Built target __idf_esp_driver_mcpwm"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=12 "Built target __idf_esp_driver_mcpwm"
 .PHONY : esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 16
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 7
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_mcpwm/CMakeFiles/__idf_esp_driver_mcpwm.dir/rule
@@ -4565,7 +4585,7 @@ esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/all: esp-id
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 15
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 6
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/rule
@@ -4586,12 +4606,12 @@ esp-idf/esp_driver_ana_cmpr/CMakeFiles/__idf_esp_driver_ana_cmpr.dir/clean:
 esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/all: esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/build.make esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/build.make esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=13 "Built target __idf_esp_driver_i2s"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=9 "Built target __idf_esp_driver_i2s"
 .PHONY : esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 15
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 6
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/rule
@@ -4612,12 +4632,12 @@ esp-idf/esp_driver_i2s/CMakeFiles/__idf_esp_driver_i2s.dir/clean:
 esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/all: esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/build.make esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/build.make esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=73 "Built target __idf_sdmmc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_sdmmc"
 .PHONY : esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 14
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/sdmmc/CMakeFiles/__idf_sdmmc.dir/rule
@@ -4643,7 +4663,7 @@ esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/all: esp-idf/esp_
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 13
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/rule
@@ -4664,12 +4684,12 @@ esp-idf/esp_driver_sdmmc/CMakeFiles/__idf_esp_driver_sdmmc.dir/clean:
 esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/all: esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/build.make esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/build.make esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=19 "Built target __idf_esp_driver_sdspi"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_sdspi"
 .PHONY : esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 13
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/rule
@@ -4690,12 +4710,12 @@ esp-idf/esp_driver_sdspi/CMakeFiles/__idf_esp_driver_sdspi.dir/clean:
 esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/all: esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/build.make esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/build.make esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=18 "Built target __idf_esp_driver_rmt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=13 "Built target __idf_esp_driver_rmt"
 .PHONY : esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 12
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/rule
@@ -4716,12 +4736,12 @@ esp-idf/esp_driver_rmt/CMakeFiles/__idf_esp_driver_rmt.dir/clean:
 esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/all: esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/build.make esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/build.make esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=20 "Built target __idf_esp_driver_tsens"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_tsens"
 .PHONY : esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 11
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_tsens/CMakeFiles/__idf_esp_driver_tsens.dir/rule
@@ -4747,7 +4767,7 @@ esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/all: esp-idf/esp_driv
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 10
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/rule
@@ -4768,12 +4788,12 @@ esp-idf/esp_driver_sdm/CMakeFiles/__idf_esp_driver_sdm.dir/clean:
 esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/all: esp-idf/esp_driver_ledc/CMakeFiles/__idf_esp_driver_ledc.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/build.make esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/build.make esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=12 "Built target __idf_esp_driver_i2c"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_i2c"
 .PHONY : esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 10
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_i2c/CMakeFiles/__idf_esp_driver_i2c.dir/rule
@@ -4799,7 +4819,7 @@ esp-idf/esp_driver_ledc/CMakeFiles/__idf_esp_driver_ledc.dir/all: esp-idf/esp_dr
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_ledc/CMakeFiles/__idf_esp_driver_ledc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_ledc/CMakeFiles/__idf_esp_driver_ledc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_ledc/CMakeFiles/__idf_esp_driver_ledc.dir/rule
@@ -4825,7 +4845,7 @@ esp-idf/esp_driver_parlio/CMakeFiles/__idf_esp_driver_parlio.dir/all: esp-idf/dr
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_parlio/CMakeFiles/__idf_esp_driver_parlio.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_parlio/CMakeFiles/__idf_esp_driver_parlio.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_parlio/CMakeFiles/__idf_esp_driver_parlio.dir/rule
@@ -4846,12 +4866,12 @@ esp-idf/esp_driver_parlio/CMakeFiles/__idf_esp_driver_parlio.dir/clean:
 esp-idf/driver/CMakeFiles/__idf_driver.dir/all: esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/driver/CMakeFiles/__idf_driver.dir/build.make esp-idf/driver/CMakeFiles/__idf_driver.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/driver/CMakeFiles/__idf_driver.dir/build.make esp-idf/driver/CMakeFiles/__idf_driver.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=6 "Built target __idf_driver"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=4 "Built target __idf_driver"
 .PHONY : esp-idf/driver/CMakeFiles/__idf_driver.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/driver/CMakeFiles/__idf_driver.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/driver/CMakeFiles/__idf_driver.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/driver/CMakeFiles/__idf_driver.dir/rule
@@ -4872,12 +4892,12 @@ esp-idf/driver/CMakeFiles/__idf_driver.dir/clean:
 esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/all: esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/build.make esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/build.make esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=68,69 "Built target __idf_nvs_flash"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=77 "Built target __idf_nvs_flash"
 .PHONY : esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 3
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/rule
@@ -4898,12 +4918,12 @@ esp-idf/nvs_flash/CMakeFiles/__idf_nvs_flash.dir/clean:
 esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/all: esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/build.make esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/build.make esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=42 "Built target __idf_esp_wifi"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_wifi"
 .PHONY : esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 6
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/rule
@@ -4924,12 +4944,12 @@ esp-idf/esp_wifi/CMakeFiles/__idf_esp_wifi.dir/clean:
 esp-idf/unity/CMakeFiles/__idf_unity.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/unity/CMakeFiles/__idf_unity.dir/build.make esp-idf/unity/CMakeFiles/__idf_unity.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/unity/CMakeFiles/__idf_unity.dir/build.make esp-idf/unity/CMakeFiles/__idf_unity.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=81 "Built target __idf_unity"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=86 "Built target __idf_unity"
 .PHONY : esp-idf/unity/CMakeFiles/__idf_unity.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/unity/CMakeFiles/__idf_unity.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/unity/CMakeFiles/__idf_unity.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/unity/CMakeFiles/__idf_unity.dir/rule
@@ -4951,12 +4971,12 @@ esp-idf/cmock/CMakeFiles/__idf_cmock.dir/all: esp-idf/riscv/CMakeFiles/__idf_ris
 esp-idf/cmock/CMakeFiles/__idf_cmock.dir/all: esp-idf/unity/CMakeFiles/__idf_unity.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/cmock/CMakeFiles/__idf_cmock.dir/build.make esp-idf/cmock/CMakeFiles/__idf_cmock.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/cmock/CMakeFiles/__idf_cmock.dir/build.make esp-idf/cmock/CMakeFiles/__idf_cmock.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=3 "Built target __idf_cmock"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_cmock"
 .PHONY : esp-idf/cmock/CMakeFiles/__idf_cmock.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/cmock/CMakeFiles/__idf_cmock.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 81
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/cmock/CMakeFiles/__idf_cmock.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/cmock/CMakeFiles/__idf_cmock.dir/rule
@@ -4977,12 +4997,12 @@ esp-idf/cmock/CMakeFiles/__idf_cmock.dir/clean:
 esp-idf/console/CMakeFiles/__idf_console.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/console/CMakeFiles/__idf_console.dir/build.make esp-idf/console/CMakeFiles/__idf_console.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/console/CMakeFiles/__idf_console.dir/build.make esp-idf/console/CMakeFiles/__idf_console.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=4,5 "Built target __idf_console"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=3 "Built target __idf_console"
 .PHONY : esp-idf/console/CMakeFiles/__idf_console.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/console/CMakeFiles/__idf_console.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 81
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/console/CMakeFiles/__idf_console.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/console/CMakeFiles/__idf_console.dir/rule
@@ -5008,7 +5028,7 @@ esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/all: esp-idf/esp-tls/CMakeF
 
 # Build rule for subdir invocation for target.
 esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/rule
@@ -5029,12 +5049,12 @@ esp-idf/http_parser/CMakeFiles/__idf_http_parser.dir/clean:
 esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/all: esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/build.make esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/build.make esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=8 "Built target __idf_esp-tls"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=6 "Built target __idf_esp-tls"
 .PHONY : esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/rule
@@ -5055,12 +5075,12 @@ esp-idf/esp-tls/CMakeFiles/__idf_esp-tls.dir/clean:
 esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/all: esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/build.make esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/build.make esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=9 "Built target __idf_esp_adc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_adc"
 .PHONY : esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/rule
@@ -5081,12 +5101,12 @@ esp-idf/esp_adc/CMakeFiles/__idf_esp_adc.dir/clean:
 esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/build.make esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/build.make esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=14 "Built target __idf_esp_driver_isp"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=10 "Built target __idf_esp_driver_isp"
 .PHONY : esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/rule
@@ -5108,12 +5128,12 @@ esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/all: esp-idf/riscv/CM
 esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/all: esp-idf/esp_driver_isp/CMakeFiles/__idf_esp_driver_isp.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/build.make esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/build.make esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=10 "Built target __idf_esp_driver_cam"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_driver_cam"
 .PHONY : esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 81
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/rule
@@ -5134,12 +5154,12 @@ esp-idf/esp_driver_cam/CMakeFiles/__idf_esp_driver_cam.dir/clean:
 esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/build.make esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/build.make esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=15 "Built target __idf_esp_driver_jpeg"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=11 "Built target __idf_esp_driver_jpeg"
 .PHONY : esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_jpeg/CMakeFiles/__idf_esp_driver_jpeg.dir/rule
@@ -5165,7 +5185,7 @@ esp-idf/esp_driver_ppa/CMakeFiles/__idf_esp_driver_ppa.dir/all: esp-idf/riscv/CM
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_ppa/CMakeFiles/__idf_esp_driver_ppa.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_ppa/CMakeFiles/__idf_esp_driver_ppa.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_ppa/CMakeFiles/__idf_esp_driver_ppa.dir/rule
@@ -5191,7 +5211,7 @@ esp-idf/esp_driver_touch_sens/CMakeFiles/__idf_esp_driver_touch_sens.dir/all: es
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_driver_touch_sens/CMakeFiles/__idf_esp_driver_touch_sens.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_driver_touch_sens/CMakeFiles/__idf_esp_driver_touch_sens.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_driver_touch_sens/CMakeFiles/__idf_esp_driver_touch_sens.dir/rule
@@ -5212,12 +5232,12 @@ esp-idf/esp_driver_touch_sens/CMakeFiles/__idf_esp_driver_touch_sens.dir/clean:
 esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/build.make esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/build.make esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=21,22 "Built target __idf_esp_eth"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=16 "Built target __idf_esp_eth"
 .PHONY : esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 81
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/rule
@@ -5238,12 +5258,12 @@ esp-idf/esp_eth/CMakeFiles/__idf_esp_eth.dir/clean:
 esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/all: esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/build.make esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/build.make esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=23 "Built target __idf_esp_gdbstub"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_gdbstub"
 .PHONY : esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/rule
@@ -5264,12 +5284,12 @@ esp-idf/esp_gdbstub/CMakeFiles/__idf_esp_gdbstub.dir/clean:
 esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/build.make esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/build.make esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_hid"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=17 "Built target __idf_esp_hid"
 .PHONY : esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_hid/CMakeFiles/__idf_esp_hid.dir/rule
@@ -5295,7 +5315,7 @@ esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/all: esp-idf/esp_http_c
 
 # Build rule for subdir invocation for target.
 esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/rule
@@ -5316,12 +5336,12 @@ esp-idf/tcp_transport/CMakeFiles/__idf_tcp_transport.dir/clean:
 esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/all: esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/build.make esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/build.make esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=24 "Built target __idf_esp_http_client"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_http_client"
 .PHONY : esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/rule
@@ -5342,7 +5362,7 @@ esp-idf/esp_http_client/CMakeFiles/__idf_esp_http_client.dir/clean:
 esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/all: esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/build.make esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/build.make esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_http_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=18 "Built target __idf_esp_http_server"
 .PHONY : esp-idf/esp_http_server/CMakeFiles/__idf_esp_http_server.dir/all
 
 # Build rule for subdir invocation for target.
@@ -5370,12 +5390,12 @@ esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/all: esp-idf/esp_system
 esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/all: esp-idf/esp_system/CMakeFiles/sections.ld.in.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/build.make esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/build.make esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=25 "Built target __idf_esp_https_ota"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_esp_https_ota"
 .PHONY : esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 1
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_https_ota/CMakeFiles/__idf_esp_https_ota.dir/rule
@@ -5401,7 +5421,7 @@ esp-idf/esp_https_server/CMakeFiles/__idf_esp_https_server.dir/all: esp-idf/risc
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_https_server/CMakeFiles/__idf_esp_https_server.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_https_server/CMakeFiles/__idf_esp_https_server.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_https_server/CMakeFiles/__idf_esp_https_server.dir/rule
@@ -5422,12 +5442,12 @@ esp-idf/esp_https_server/CMakeFiles/__idf_esp_https_server.dir/clean:
 esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/build.make esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/build.make esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=32 "Built target __idf_esp_lcd"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=23 "Built target __idf_esp_lcd"
 .PHONY : esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_lcd/CMakeFiles/__idf_esp_lcd.dir/rule
@@ -5453,7 +5473,7 @@ esp-idf/protobuf-c/CMakeFiles/__idf_protobuf-c.dir/all: esp-idf/riscv/CMakeFiles
 
 # Build rule for subdir invocation for target.
 esp-idf/protobuf-c/CMakeFiles/__idf_protobuf-c.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/protobuf-c/CMakeFiles/__idf_protobuf-c.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/protobuf-c/CMakeFiles/__idf_protobuf-c.dir/rule
@@ -5476,12 +5496,12 @@ esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/all: esp-idf/console/CMakeFiles
 esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/all: esp-idf/protobuf-c/CMakeFiles/__idf_protobuf-c.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/build.make esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/build.make esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=70,71 "Built target __idf_protocomm"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=78 "Built target __idf_protocomm"
 .PHONY : esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 83
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 56
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/rule
@@ -5506,12 +5526,12 @@ esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/all: esp-idf/protobuf
 esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/all: esp-idf/protocomm/CMakeFiles/__idf_protocomm.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/build.make esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/build.make esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=33 "Built target __idf_esp_local_ctrl"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=24 "Built target __idf_esp_local_ctrl"
 .PHONY : esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 84
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 57
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/rule
@@ -5532,12 +5552,12 @@ esp-idf/esp_local_ctrl/CMakeFiles/__idf_esp_local_ctrl.dir/clean:
 esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/build.make esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/build.make esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=43 "Built target __idf_espcoredump"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=31 "Built target __idf_espcoredump"
 .PHONY : esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/rule
@@ -5558,12 +5578,12 @@ esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir/clean:
 esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/build.make esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/build.make esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_wear_levelling"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=88 "Built target __idf_wear_levelling"
 .PHONY : esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/rule
@@ -5585,12 +5605,12 @@ esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/all: esp-idf/riscv/CMakeFiles/__idf_ris
 esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/all: esp-idf/wear_levelling/CMakeFiles/__idf_wear_levelling.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/build.make esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/build.make esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=44 "Built target __idf_fatfs"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=32 "Built target __idf_fatfs"
 .PHONY : esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 56
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/rule
@@ -5611,12 +5631,12 @@ esp-idf/fatfs/CMakeFiles/__idf_fatfs.dir/clean:
 esp-idf/json/CMakeFiles/__idf_json.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/json/CMakeFiles/__idf_json.dir/build.make esp-idf/json/CMakeFiles/__idf_json.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/json/CMakeFiles/__idf_json.dir/build.make esp-idf/json/CMakeFiles/__idf_json.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=54 "Built target __idf_json"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_json"
 .PHONY : esp-idf/json/CMakeFiles/__idf_json.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/json/CMakeFiles/__idf_json.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/json/CMakeFiles/__idf_json.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/json/CMakeFiles/__idf_json.dir/rule
@@ -5637,12 +5657,12 @@ esp-idf/json/CMakeFiles/__idf_json.dir/clean:
 esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/build.make esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/build.make esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_mqtt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=75 "Built target __idf_mqtt"
 .PHONY : esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/mqtt/CMakeFiles/__idf_mqtt.dir/rule
@@ -5668,7 +5688,7 @@ esp-idf/nvs_sec_provider/CMakeFiles/__idf_nvs_sec_provider.dir/all: esp-idf/risc
 
 # Build rule for subdir invocation for target.
 esp-idf/nvs_sec_provider/CMakeFiles/__idf_nvs_sec_provider.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 54
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/nvs_sec_provider/CMakeFiles/__idf_nvs_sec_provider.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/nvs_sec_provider/CMakeFiles/__idf_nvs_sec_provider.dir/rule
@@ -5689,12 +5709,12 @@ esp-idf/nvs_sec_provider/CMakeFiles/__idf_nvs_sec_provider.dir/clean:
 esp-idf/rt/CMakeFiles/__idf_rt.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/rt/CMakeFiles/__idf_rt.dir/build.make esp-idf/rt/CMakeFiles/__idf_rt.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/rt/CMakeFiles/__idf_rt.dir/build.make esp-idf/rt/CMakeFiles/__idf_rt.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_rt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=80 "Built target __idf_rt"
 .PHONY : esp-idf/rt/CMakeFiles/__idf_rt.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/rt/CMakeFiles/__idf_rt.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/rt/CMakeFiles/__idf_rt.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/rt/CMakeFiles/__idf_rt.dir/rule
@@ -5715,12 +5735,12 @@ esp-idf/rt/CMakeFiles/__idf_rt.dir/clean:
 esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/build.make esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/build.make esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=80 "Built target __idf_spiffs"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=85 "Built target __idf_spiffs"
 .PHONY : esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/rule
@@ -5741,12 +5761,12 @@ esp-idf/spiffs/CMakeFiles/__idf_spiffs.dir/clean:
 esp-idf/usb/CMakeFiles/__idf_usb.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/usb/CMakeFiles/__idf_usb.dir/build.make esp-idf/usb/CMakeFiles/__idf_usb.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/usb/CMakeFiles/__idf_usb.dir/build.make esp-idf/usb/CMakeFiles/__idf_usb.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=82 "Built target __idf_usb"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=87 "Built target __idf_usb"
 .PHONY : esp-idf/usb/CMakeFiles/__idf_usb.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/usb/CMakeFiles/__idf_usb.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 55
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/usb/CMakeFiles/__idf_usb.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/usb/CMakeFiles/__idf_usb.dir/rule
@@ -5761,19 +5781,46 @@ esp-idf/usb/CMakeFiles/__idf_usb.dir/clean:
 .PHONY : esp-idf/usb/CMakeFiles/__idf_usb.dir/clean
 
 #=============================================================================
+# Target rules for target esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir
+
+# All Build rule for target.
+esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
+	$(MAKE) $(MAKESILENT) -f esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/build.make esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/depend
+	$(MAKE) $(MAKESILENT) -f esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/build.make esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67 "Built target __idf_lvgl"
+.PHONY : esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
+
+# Build rule for subdir invocation for target.
+esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 81
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
+.PHONY : esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/rule
+
+# Convenience name for target.
+__idf_lvgl: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/rule
+.PHONY : __idf_lvgl
+
+# clean rule for target.
+esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/clean:
+	$(MAKE) $(MAKESILENT) -f esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/build.make esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/clean
+.PHONY : esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/clean
+
+#=============================================================================
 # Target rules for target esp-idf/main/CMakeFiles/__idf_main.dir
 
 # All Build rule for target.
 esp-idf/main/CMakeFiles/__idf_main.dir/all: esp-idf/riscv/CMakeFiles/__idf_riscv.dir/all
 esp-idf/main/CMakeFiles/__idf_main.dir/all: esp-idf/json/CMakeFiles/__idf_json.dir/all
+esp-idf/main/CMakeFiles/__idf_main.dir/all: esp-idf/lvgl/CMakeFiles/__idf_lvgl.dir/all
 	$(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/depend
 	$(MAKE) $(MAKESILENT) -f esp-idf/main/CMakeFiles/__idf_main.dir/build.make esp-idf/main/CMakeFiles/__idf_main.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num= "Built target __idf_main"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles --progress-num=74 "Built target __idf_main"
 .PHONY : esp-idf/main/CMakeFiles/__idf_main.dir/all
 
 # Build rule for subdir invocation for target.
 esp-idf/main/CMakeFiles/__idf_main.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 80
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 82
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 esp-idf/main/CMakeFiles/__idf_main.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/CMakeFiles 0
 .PHONY : esp-idf/main/CMakeFiles/__idf_main.dir/rule

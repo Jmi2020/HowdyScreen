@@ -544,6 +544,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/lvgl/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/build/esp-idf/main/cmake_install.cmake")
 endif()
 
