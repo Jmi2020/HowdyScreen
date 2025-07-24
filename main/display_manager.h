@@ -3,8 +3,15 @@
 
 #include "lvgl.h"
 #include "audio_pipeline.h"
-#include "network_manager.h"
 #include "esp_err.h"
+
+// Forward declarations for simplified build
+typedef enum {
+    NETWORK_STATE_DISCONNECTED,
+    NETWORK_STATE_CONNECTING,
+    NETWORK_STATE_CONNECTED,
+    NETWORK_STATE_ERROR
+} network_state_t;
 
 typedef struct {
     lv_disp_t *display;
@@ -15,9 +22,11 @@ typedef struct {
     lv_obj_t *wifi_label;
     lv_obj_t *level_arc;
     lv_obj_t *center_button;
+    lv_obj_t *howdy_gif;  // Howdy animation during processing
     lv_meter_indicator_t *level_indicator;
     bool initialized;
     bool muted;
+    bool processing;  // Flag to show processing animation
 } display_manager_t;
 
 /**
@@ -59,6 +68,11 @@ void display_set_mute(display_manager_t *manager, bool muted);
  * Get mute state
  */
 bool display_is_muted(display_manager_t *manager);
+
+/**
+ * Show/hide processing animation
+ */
+void display_show_processing(display_manager_t *manager, bool show);
 
 /**
  * Deinitialize display manager

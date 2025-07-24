@@ -1,6 +1,7 @@
 #include "display_manager.h"
 #include "howdy_config.h"
 #include "esp_log.h"
+#include "assets/howdy64_gif.h"
 #include <string.h>
 
 static const char *TAG = "display_manager";
@@ -105,6 +106,8 @@ esp_err_t display_manager_init(display_manager_t *manager)
     }
 
     manager->initialized = true;
+    manager->processing = false;
+    manager->howdy_gif = NULL;
     ESP_LOGI(TAG, "Display manager initialized successfully");
     return ESP_OK;
 }
@@ -158,21 +161,28 @@ esp_err_t display_create_ui(display_manager_t *manager)
     // Add microphone icon to center button
     lv_obj_t *icon = lv_label_create(manager->center_button);
     lv_label_set_text(icon, LV_SYMBOL_AUDIO);
-    lv_obj_set_style_text_font(icon, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(icon, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(icon, COLOR_TEXT_PRIMARY, 0);
     lv_obj_center(icon);
 
     // Create status label
     manager->status_label = lv_label_create(manager->screen);
     lv_label_set_text(manager->status_label, "Initializing...");
-    lv_obj_set_style_text_font(manager->status_label, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(manager->status_label, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(manager->status_label, COLOR_TEXT_SECONDARY, 0);
     lv_obj_align(manager->status_label, LV_ALIGN_BOTTOM_MID, 0, -100);
+    
+    // Create Howdy GIF object (initially hidden)
+    manager->howdy_gif = lv_gif_create(manager->screen);
+    lv_gif_set_src(manager->howdy_gif, howdy64_gif_data);
+    lv_obj_set_size(manager->howdy_gif, 64, 64);
+    lv_obj_center(manager->howdy_gif);
+    lv_obj_add_flag(manager->howdy_gif, LV_OBJ_FLAG_HIDDEN);
 
     // Create WiFi status label
     manager->wifi_label = lv_label_create(manager->screen);
     lv_label_set_text(manager->wifi_label, LV_SYMBOL_WIFI " Disconnected");
-    lv_obj_set_style_text_font(manager->wifi_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(manager->wifi_label, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(manager->wifi_label, COLOR_TEXT_SECONDARY, 0);
     lv_obj_align(manager->wifi_label, LV_ALIGN_TOP_RIGHT, -20, 20);
 
@@ -314,6 +324,29 @@ bool display_is_muted(display_manager_t *manager)
         return false;
     }
     return manager->muted;
+}
+
+void display_show_processing(display_manager_t *manager, bool show)
+{
+    if (!manager || !manager->initialized || !manager->howdy_gif) {
+        return;
+    }
+    
+    manager->processing = show;
+    
+    if (show) {
+        // Hide audio meter and show Howdy animation
+        lv_obj_add_flag(manager->audio_meter, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(manager->howdy_gif, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(manager->status_label, "Processing...");
+        lv_obj_set_style_text_color(manager->status_label, COLOR_PRIMARY, 0);
+    } else {
+        // Show audio meter and hide Howdy animation
+        lv_obj_clear_flag(manager->audio_meter, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(manager->howdy_gif, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(manager->status_label, "Ready");
+        lv_obj_set_style_text_color(manager->status_label, COLOR_TEXT_PRIMARY, 0);
+    }
 }
 
 esp_err_t display_manager_deinit(display_manager_t *manager)

@@ -27,7 +27,7 @@
 #define AUDIO_BUFFER_SIZE (FRAME_SIZE * 2)
 
 // Network configuration
-#define UDP_PORT        8000
+#define UDP_PORT        8002
 #define MAX_PACKET_SIZE 256
 
 // Display configuration

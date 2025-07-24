@@ -130,74 +130,17 @@ static void audio_task(void *param) {
 static void network_task(void *param) {
     ESP_LOGI(TAG, "Network task started on core %d", xPortGetCoreID());
     
-    // Check if WiFi is configured
-    if (!g_wifi_config.configured) {
-        ESP_LOGI(TAG, "WiFi not configured, starting provisioning AP...");
-        display_set_status(&g_display_manager, "Setup WiFi at HowdyScreen-Setup", lv_color_hex(0xffa500));
-        
-        // Start provisioning AP
-        esp_err_t ret = wifi_provisioning_start_ap(&g_wifi_config);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to start provisioning AP");
-            display_set_status(&g_display_manager, "WiFi Setup Failed", lv_color_hex(0xff0000));
-            vTaskDelete(NULL);
-            return;
-        }
-        
-        // Wait for configuration
-        while (!g_wifi_config.configured) {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
-        
-        // Stop AP mode
-        wifi_provisioning_stop_ap(&g_wifi_config);
-    }
-    
-    // Connect to configured WiFi
-    ESP_LOGI(TAG, "Connecting to WiFi: %s", g_wifi_config.ssid);
-    display_set_status(&g_display_manager, "Connecting to WiFi...", lv_color_hex(0xffa500));
-    
-    esp_err_t ret = wifi_provisioning_connect(&g_wifi_config);
+    // Connect to WiFi
+    esp_err_t ret = network_manager_connect(&g_network_manager);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to connect to WiFi");
-        display_set_status(&g_display_manager, "WiFi Connection Failed", lv_color_hex(0xff0000));
-        vTaskDelete(NULL);
-        return;
-    }
-    
-    display_set_status(&g_display_manager, "WiFi Connected", lv_color_hex(0x34a853));
-    
-    // Initialize network manager with discovered server
-    char server_ip[16];
-    uint16_t server_port;
-    
-    // Try mDNS discovery first
-    if (server_discovery_find_server(&g_server_discovery, server_ip, &server_port) == ESP_OK) {
-        ESP_LOGI(TAG, "Found HowdyTTS server via mDNS: %s:%d", server_ip, server_port);
-    } else {
-        // Use fallback server
-        strcpy(server_ip, FALLBACK_SERVERS[0]);
-        server_port = UDP_PORT;
-        ESP_LOGW(TAG, "mDNS discovery failed, using fallback: %s:%d", server_ip, server_port);
-    }
-    
-    // Update network manager with discovered server
-    network_manager_set_server(&g_network_manager, server_ip, server_port);
-    
-    // Connect to server
-    ret = network_manager_connect(&g_network_manager);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to connect to server");
-        display_set_status(&g_display_manager, "Server Connection Failed", lv_color_hex(0xff0000));
-    } else {
-        display_set_status(&g_display_manager, "HowdyScreen Ready", lv_color_hex(0x34a853));
     }
     
     uint32_t status_update_counter = 0;
     
     while (1) {
         // Update network status display every 5 seconds
-        if (status_update_counter++ % 50 == 0) {  // 5000ms / 100ms = 50
+        if (status_update_counter++ % 5000 == 0) {
             network_state_t state = network_manager_get_state(&g_network_manager);
             int rssi = (state == NETWORK_STATE_CONNECTED) ? network_get_rssi() : -100;
             
@@ -345,21 +288,6 @@ void app_main(void) {
         return;
     }
     
-    // Initialize WiFi provisioning
-    ret = wifi_provisioning_init(&g_wifi_config);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize WiFi provisioning: %s", esp_err_to_name(ret));
-        return;
-    }
-    
-    // Load saved WiFi configuration
-    ret = wifi_provisioning_load_config(&g_wifi_config);
-    if (ret == ESP_OK && g_wifi_config.configured) {
-        ESP_LOGI(TAG, "Loaded WiFi config: SSID=%s", g_wifi_config.ssid);
-    } else {
-        ESP_LOGI(TAG, "No saved WiFi configuration found");
-    }
-    
     // Initialize server discovery
     ret = server_discovery_init(&g_server_discovery, FALLBACK_SERVERS, FALLBACK_SERVER_COUNT);
     if (ret != ESP_OK) {
@@ -367,8 +295,8 @@ void app_main(void) {
         return;
     }
     
-    // Initialize network manager with dummy values (will be updated after WiFi connection)
-    ret = network_manager_init(&g_network_manager, "dummy", "dummy", FALLBACK_SERVERS[0], UDP_PORT);
+    // Initialize network manager with first fallback server
+    ret = network_manager_init(&g_network_manager, WIFI_SSID, WIFI_PASSWORD, FALLBACK_SERVERS[0], UDP_PORT);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize network manager: %s", esp_err_to_name(ret));
         return;
@@ -405,7 +333,7 @@ void app_main(void) {
     ESP_LOGI(TAG, "Hardware initialization complete");
     
     // Set initial status
-    display_set_status(&g_display_manager, "Initializing...", lv_color_hex(0x34a853));
+    display_set_status(&g_display_manager, "Ready", lv_color_hex(0x34a853));
     
     // Create tasks with core affinity
     ESP_LOGI(TAG, "Creating tasks...");
@@ -431,14 +359,6 @@ void app_main(void) {
     
     ESP_LOGI(TAG, "All tasks created successfully");
     ESP_LOGI(TAG, "HowdyTTS Wireless Microphone is running!");
-    ESP_LOGI(TAG, "Features enabled:");
-    ESP_LOGI(TAG, "  ✓ Audio input/output (ES8311)");
-    ESP_LOGI(TAG, "  ✓ WiFi provisioning (web-based)");
-    ESP_LOGI(TAG, "  ✓ mDNS server discovery");
-    ESP_LOGI(TAG, "  ✓ Network audio streaming (UDP)");
-    ESP_LOGI(TAG, "  ✓ Howdy GIF animation");
-    ESP_LOGI(TAG, "  ✓ LED ring visualization");
-    ESP_LOGI(TAG, "  ✓ 800x800 display");
     
     // Main task can now idle - all work is done in other tasks
     while (1) {

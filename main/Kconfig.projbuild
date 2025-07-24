@@ -1,0 +1,50 @@
+menu "HowdyScreen Configuration"
+
+    config HOWDY_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the HowdyScreen to connect to.
+
+    config HOWDY_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the HowdyScreen to use.
+
+    config HOWDY_WIFI_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+    config HOWDY_USE_WIFI_PROVISIONING
+        bool "Enable WiFi Provisioning"
+        default y
+        help
+            Enable WiFi provisioning mode if no saved credentials exist.
+
+    config HOWDY_SERVER_UDP_PORT
+        int "HowdyTTS Server UDP Port"
+        default 8002
+        help
+            UDP port for audio streaming to/from HowdyTTS server.
+
+    menu "ESP32-P4 + ESP32-C6 Configuration"
+        
+        config HOWDY_USE_ESP_WIFI_REMOTE
+            bool "Use ESP WiFi Remote (for ESP32-C6 co-processor)"
+            default y
+            help
+                Enable this when using ESP32-P4 with ESP32-C6 as WiFi co-processor via SDIO.
+
+        config HOWDY_SDIO_INTERFACE
+            bool "Enable SDIO Interface for ESP32-C6"
+            default y
+            depends on HOWDY_USE_ESP_WIFI_REMOTE
+            help
+                Use SDIO interface to communicate with ESP32-C6 WiFi module.
+
+    endmenu
+
+endmenu

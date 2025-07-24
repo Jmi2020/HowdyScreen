@@ -4,7 +4,18 @@
       "Bash(idf.py build:*)",
       "Bash(cp:*)",
       "Bash(idf.py clean:*)",
-      "Bash(git submodule add:*)"
+      "Bash(git submodule add:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(python3:*)",
+      "Bash(idf.py add-dependency:*)",
+      "Bash(idf.py menuconfig:*)",
+      "Bash(idf.py reconfigure:*)",
+      "Bash(grep:*)",
+      "Bash(idf.py:*)",
+      "Bash(mv:*)",
+      "WebFetch(domain:www.waveshare.com)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

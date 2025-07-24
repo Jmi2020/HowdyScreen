@@ -1,53 +1,90 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | -------- | -------- | -------- | ----- |
+| Supported Targets | ESP32-P4 |
+| ----------------- | -------- |
 
-# Hello World Example
+# HowdyScreen - ESP32-P4 Wireless Microphone with Display
 
-Starts a FreeRTOS task to print "Hello World".
+A wireless microphone system built on ESP32-P4 featuring real-time audio streaming, visual display, and RGB LED feedback. This device captures audio through an integrated microphone, displays audio levels and system status on an 800x800 circular display, and provides visual feedback through a 109-LED ring.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Important: WiFi Requirements
+- **This device only supports 2.4GHz WiFi networks**
+- The ESP32-C6 co-processor provides WiFi 6 capabilities on 2.4GHz band
+- Ensure your router broadcasts on 2.4GHz before attempting connection
+- See [ESP32P4_WIFI_CONFIG.md](ESP32P4_WIFI_CONFIG.md) for detailed WiFi configuration
 
-## How to use example
+## Features
 
-Follow detailed instructions provided specifically for this example.
+- **Real-time Audio Processing**: 16kHz mono audio capture and streaming with 20ms frames
+- **Wireless Communication**: UDP-based audio streaming over WiFi to HowdyTTS server
+- **Visual Display**: 800x800 circular LVGL-based interface showing audio levels and system status
+- **LED Ring Animation**: 109 WS2812B LEDs providing audio-reactive feedback
+- **Multi-core Architecture**: Optimized task distribution across ESP32-P4 dual cores
+- **Audio Codec Integration**: ES8311 codec for high-quality audio input/output
 
-Select the instructions depending on Espressif chip installed on your development board:
+## Hardware Requirements
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+- ESP32-P4 development board
+- ES8311 audio codec
+- 800x800 circular display
+- WS2812B LED ring (109 LEDs)
+- Microphone and speaker setup
+- Power amplifier (controlled via GPIO 53)
 
-
-## Example folder contents
-
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
-
-Below is short explanation of remaining files in the project folder.
+## Project Structure
 
 ```
 ├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
+├── main/
+│   ├── main.c                  Main application entry point
+│   ├── howdy_config.h          Hardware pin definitions and configuration
+│   ├── audio_pipeline.c/h      Audio capture and playback management
+│   ├── network_manager.c/h     WiFi and UDP communication
+│   ├── display_manager.c/h     LVGL display and UI management
+│   ├── led_controller.c/h      WS2812B LED ring control
+│   └── led_strip_encoder.c/h   RMT-based LED driving
+├── components/
+│   └── lvgl/                   LVGL graphics library
+└── README.md
 ```
 
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
+## Configuration
+
+Before building, update the following configuration in `main/main.c`:
+
+```c
+#define WIFI_SSID     "your_wifi_network"
+#define WIFI_PASSWORD "your_wifi_password"
+#define SERVER_IP     "192.168.1.100"  // HowdyTTS server IP
+```
+
+## Pin Configuration
+
+The hardware pin assignments are defined in `main/howdy_config.h`:
+
+- **Audio (ES8311)**: I2S pins 9-13, I2C control pins 7-8
+- **Display**: Connected via SPI (pins defined in display driver)
+- **LED Ring**: WS2812B data on GPIO 16
+- **Power Amplifier**: Control on GPIO 53
+
+## Building and Flashing
+
+1. Install ESP-IDF development framework
+2. Configure the project: `idf.py menuconfig`
+3. Build the project: `idf.py build`
+4. Flash to device: `idf.py -p PORT flash monitor`
+
+## System Architecture
+
+The application uses a multi-task architecture optimized for dual-core performance:
+
+- **Core 0**: Audio processing task (highest priority)
+- **Core 1**: Network, display, and LED tasks
+- **Inter-task Communication**: Queues and mutexes for thread-safe data sharing
 
 ## Troubleshooting
 
-* Program upload failure
+* **Audio Issues**: Check ES8311 connections and I2S pin configuration
+* **Display Problems**: Verify SPI connections and LVGL configuration
+* **Network Connectivity**: Ensure WiFi credentials are correct and server is reachable
+* **LED Ring**: Confirm WS2812B data pin and LED count configuration
 
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
-
-## Technical support and feedback
-
-Please use the following feedback channels:
-
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
-
-We will get back to you as soon as possible.
+For detailed debugging, monitor serial output: `idf.py monitor`

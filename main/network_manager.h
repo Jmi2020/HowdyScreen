@@ -72,6 +72,11 @@ esp_err_t network_send_control(network_manager_t *manager, const char *message);
 int network_get_rssi(void);
 
 /**
+ * Update server IP and port
+ */
+esp_err_t network_manager_set_server(network_manager_t *manager, const char *server_ip, uint16_t port);
+
+/**
  * Deinitialize network manager
  */
 esp_err_t network_manager_deinit(network_manager_t *manager);
