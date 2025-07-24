@@ -20,5 +20,6 @@ dependencies:
   espressif/esp-dsp: ^1.4.0
   espressif/esp_websocket_client: ^1.0.0
   espressif/mdns: '*'
-  espressif/esp_wifi_remote: "~0.3.0"
-  espressif/esp_hosted: "*"
+  # WiFi remote components disabled - need custom configuration for ESP32-P4 + C6
+  # espressif/esp_wifi_remote: "~0.3.0"
+  # espressif/esp_hosted: "*"

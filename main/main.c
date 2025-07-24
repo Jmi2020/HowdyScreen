@@ -168,21 +168,19 @@ static void network_task(void *param) {
     display_set_status(&g_display_manager, "WiFi Connected", lv_color_hex(0x34a853));
     
     // Initialize network manager with discovered server
-    char server_ip[16];
     uint16_t server_port;
     
-    // Try mDNS discovery first
-    if (server_discovery_find_server(&g_server_discovery, server_ip, &server_port) == ESP_OK) {
-        ESP_LOGI(TAG, "Found HowdyTTS server via mDNS: %s:%d", server_ip, server_port);
+    // Get discovered server (mDNS or fallback)
+    const char *server_ip = server_discovery_get_current(&g_server_discovery, &server_port);
+    if (server_ip) {
+        ESP_LOGI(TAG, "Using HowdyTTS server: %s:%d", server_ip, server_port);
+        // Update network manager with discovered server
+        network_manager_set_server(&g_network_manager, server_ip, server_port);
     } else {
-        // Use fallback server
-        strcpy(server_ip, FALLBACK_SERVERS[0]);
-        server_port = UDP_PORT;
-        ESP_LOGW(TAG, "mDNS discovery failed, using fallback: %s:%d", server_ip, server_port);
+        ESP_LOGE(TAG, "No server available");
+        // Use first fallback
+        network_manager_set_server(&g_network_manager, FALLBACK_SERVERS[0], UDP_PORT);
     }
-    
-    // Update network manager with discovered server
-    network_manager_set_server(&g_network_manager, server_ip, server_port);
     
     // Connect to server
     ret = network_manager_connect(&g_network_manager);
@@ -261,7 +259,7 @@ static void led_task(void *param) {
     while (1) {
         // Update LEDs at ~120 FPS for smooth animations
         TickType_t now = xTaskGetTickCount();
-        if (now - last_animation >= pdMS_TO_TICKS(8)) {  // ~120 FPS
+        if ((int32_t)(now - last_animation) >= pdMS_TO_TICKS(8)) {  // ~120 FPS
             
             // Check for new audio data
             if (xQueuePeek(audio_data_queue, &audio_msg, 0) == pdTRUE) {
@@ -316,7 +314,7 @@ static void monitor_task(void *param) {
 
 void app_main(void) {
     ESP_LOGI(TAG, "HowdyTTS Wireless Microphone Starting...");
-    ESP_LOGI(TAG, "ESP32-P4 @ %lu MHz", esp_clk_cpu_freq() / 1000000);
+    ESP_LOGI(TAG, "ESP32-P4 System Starting...");
     
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();

@@ -1,8 +1,8 @@
 #include "display_manager.h"
 #include "howdy_config.h"
 #include "esp_log.h"
-#include "assets/howdy64_gif.h"
 #include <string.h>
+#include "lvgl.h"
 
 static const char *TAG = "display_manager";
 
@@ -172,10 +172,11 @@ esp_err_t display_create_ui(display_manager_t *manager)
     lv_obj_set_style_text_color(manager->status_label, COLOR_TEXT_SECONDARY, 0);
     lv_obj_align(manager->status_label, LV_ALIGN_BOTTOM_MID, 0, -100);
     
-    // Create Howdy GIF object (initially hidden)
-    manager->howdy_gif = lv_gif_create(manager->screen);
-    lv_gif_set_src(manager->howdy_gif, howdy64_gif_data);
-    lv_obj_set_size(manager->howdy_gif, 64, 64);
+    // Create Howdy animation placeholder (initially hidden)
+    // TODO: Implement GIF animation when LVGL GIF support is properly configured
+    manager->howdy_gif = lv_label_create(manager->screen);
+    lv_label_set_text(manager->howdy_gif, "🤠 Processing...");
+    lv_obj_set_style_text_font(manager->howdy_gif, &lv_font_montserrat_14, 0);
     lv_obj_center(manager->howdy_gif);
     lv_obj_add_flag(manager->howdy_gif, LV_OBJ_FLAG_HIDDEN);
 

@@ -4,14 +4,7 @@
 #include "lvgl.h"
 #include "audio_pipeline.h"
 #include "esp_err.h"
-
-// Forward declarations for simplified build
-typedef enum {
-    NETWORK_STATE_DISCONNECTED,
-    NETWORK_STATE_CONNECTING,
-    NETWORK_STATE_CONNECTED,
-    NETWORK_STATE_ERROR
-} network_state_t;
+#include "network_manager.h"  // Get network_state_t from here
 
 typedef struct {
     lv_disp_t *display;

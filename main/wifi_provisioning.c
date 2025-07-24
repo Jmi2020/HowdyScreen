@@ -12,10 +12,6 @@
 #include <string.h>
 #include <cJSON.h>
 
-#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
-#include "esp_wifi_remote.h"
-#endif
-
 static const char *TAG = "wifi_provisioning";
 static httpd_handle_t provisioning_server = NULL;
 static EventGroupHandle_t wifi_event_group;
@@ -24,7 +20,7 @@ static const int WIFI_FAIL_BIT = BIT1;
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-    wifi_provision_config_t *config = (wifi_provision_config_t*)arg;
+    (void)arg;  // Unused in current implementation
     
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
@@ -51,13 +47,6 @@ esp_err_t wifi_provisioning_init(wifi_provision_config_t *config)
     // Initialize WiFi
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
-    // Initialize WiFi remote for ESP32-C6 co-processor
-    wifi_remote_config_t remote_config = WIFI_REMOTE_DEFAULT_CONFIG();
-    ESP_ERROR_CHECK(esp_wifi_remote_init(&remote_config));
-    ESP_LOGI(TAG, "ESP WiFi Remote initialized for ESP32-C6 co-processor");
-#endif
     
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -232,7 +221,8 @@ static esp_err_t configure_handler(httpd_req_t *req)
     // Parse JSON
     cJSON *json = cJSON_Parse(content);
     if (!json) {
-        httpd_resp_send_400(req);
+        httpd_resp_set_status(req, "400 Bad Request");
+        httpd_resp_send(req, "Bad Request", HTTPD_RESP_USE_STRLEN);
         return ESP_FAIL;
     }
     
@@ -242,7 +232,8 @@ static esp_err_t configure_handler(httpd_req_t *req)
     
     if (!ssid_json || !cJSON_IsString(ssid_json)) {
         cJSON_Delete(json);
-        httpd_resp_send_400(req);
+        httpd_resp_set_status(req, "400 Bad Request");
+        httpd_resp_send(req, "Bad Request", HTTPD_RESP_USE_STRLEN);
         return ESP_FAIL;
     }
     

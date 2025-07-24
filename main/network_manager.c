@@ -13,10 +13,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
-#include "esp_wifi_remote.h"
-#endif
-
 static const char *TAG = "network_manager";
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -82,13 +78,6 @@ esp_err_t network_manager_init(network_manager_t *manager, const char *ssid, con
     // Initialize network interface
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
-    // Initialize WiFi remote for ESP32-C6 co-processor
-    wifi_remote_config_t remote_config = WIFI_REMOTE_DEFAULT_CONFIG();
-    ESP_ERROR_CHECK(esp_wifi_remote_init(&remote_config));
-    ESP_LOGI(TAG, "ESP WiFi Remote initialized for ESP32-C6 co-processor");
-#endif
     
     esp_netif_create_default_wifi_sta();
 
