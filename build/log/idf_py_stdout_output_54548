@@ -1,4 +1,0 @@
--- git rev-parse returned 'fatal: not a git repository (or any of the parent directories): .git'
--- Could not use 'git describe' to determine PROJECT_VER.
--- Building ESP-IDF components for target esp32p4
--- Configuring incomplete, errors occurred!

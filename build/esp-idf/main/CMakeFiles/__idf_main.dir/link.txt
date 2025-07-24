@@ -1,2 +1,0 @@
-/Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/bin/riscv32-esp-elf-ar qc libmain.a CMakeFiles/__idf_main.dir/main.c.obj CMakeFiles/__idf_main.dir/audio_pipeline.c.obj CMakeFiles/__idf_main.dir/network_manager.c.obj CMakeFiles/__idf_main.dir/display_manager.c.obj CMakeFiles/__idf_main.dir/led_controller.c.obj CMakeFiles/__idf_main.dir/led_strip_encoder.c.obj
-/Users/silverlinings/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/bin/riscv32-esp-elf-ranlib libmain.a
