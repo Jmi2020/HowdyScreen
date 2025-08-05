@@ -16,11 +16,16 @@
 // Simple WiFi manager for ESP32-P4
 #include "simple_wifi_manager.h"
 
+// Service discovery for HowdyTTS servers
+#include "service_discovery.h"
+
 static const char *TAG = "HowdyPhase2";
 
 // Global handles
 static bool system_ready = false;
 static bool wifi_connected = false;
+static bool service_discovery_active = false;
+static int discovered_servers_count = 0;
 
 // WiFi credentials from file
 static char wifi_ssid[32] = {0};
@@ -30,6 +35,8 @@ static char wifi_password[64] = {0};
 static void system_init(void);
 static esp_err_t load_wifi_credentials(void);
 static void wifi_connection_callback(bool connected, const char *info);
+static void howdytts_server_discovered_callback(const howdytts_server_info_t *server_info);
+static esp_err_t start_service_discovery(void);
 static void system_monitor_task(void *pvParameters);
 static void lvgl_tick_task(void *pvParameters);
 
@@ -99,10 +106,78 @@ static void wifi_connection_callback(bool connected, const char *info)
         ESP_LOGI(TAG, "   Signal: %d dBm", rssi);
         
         wifi_connected = true;
+        
+        // Start service discovery now that we have network connectivity
+        ESP_LOGI(TAG, "🔍 Starting HowdyTTS server discovery...");
+        esp_err_t ret = start_service_discovery();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start service discovery: %s", esp_err_to_name(ret));
+        }
+        
     } else {
         ESP_LOGW(TAG, "📶 WiFi disconnected: %s", info);
         wifi_connected = false;
+        service_discovery_active = false;
+        discovered_servers_count = 0;
     }
+}
+
+static void howdytts_server_discovered_callback(const howdytts_server_info_t *server_info)
+{
+    discovered_servers_count++;
+    ESP_LOGI(TAG, "🎯 HowdyTTS Server #%d Discovered!", discovered_servers_count);
+    ESP_LOGI(TAG, "   Hostname: %s", server_info->hostname);
+    ESP_LOGI(TAG, "   IP Address: %s", server_info->ip_addr);
+    ESP_LOGI(TAG, "   Port: %d", server_info->port);
+    ESP_LOGI(TAG, "   Version: %s", server_info->version[0] ? server_info->version : "unknown");
+    ESP_LOGI(TAG, "   Secure: %s", server_info->secure ? "yes" : "no");
+    
+    // Test connectivity to the discovered server
+    uint32_t latency_ms = 0;
+    esp_err_t ret = service_discovery_test_server(server_info, 3000, &latency_ms);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "   ✅ Server reachable (latency: %lu ms)", latency_ms);
+    } else {
+        ESP_LOGW(TAG, "   ❌ Server not reachable");
+    }
+}
+
+static esp_err_t start_service_discovery(void)
+{
+    if (service_discovery_active) {
+        ESP_LOGI(TAG, "Service discovery already active");
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Initializing mDNS service discovery system");
+    
+    // Initialize service discovery
+    esp_err_t ret = service_discovery_init(howdytts_server_discovered_callback);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize service discovery: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    // Advertise this ESP32-P4 as a HowdyTTS client
+    ret = service_discovery_advertise_client("ESP32-P4-HowdyScreen", "display,touch,audio,tts");
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to advertise client: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    // Start scanning for HowdyTTS servers (continuous scan)
+    ret = service_discovery_start_scan(0);  // 0 = continuous scanning
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start server scan: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    service_discovery_active = true;
+    ESP_LOGI(TAG, "🔍 mDNS service discovery active - scanning for HowdyTTS servers");
+    ESP_LOGI(TAG, "   Looking for: _howdytts._tcp services");
+    ESP_LOGI(TAG, "   Advertising as: howdy-esp32p4.local");
+    
+    return ESP_OK;
 }
 
 static void system_monitor_task(void *pvParameters)
@@ -119,6 +194,8 @@ static void system_monitor_task(void *pvParameters)
             ESP_LOGI(TAG, "=== System Status (t+%ds) ===", counter);
             ESP_LOGI(TAG, "System Ready: %s", system_ready ? "✅" : "❌");
             ESP_LOGI(TAG, "WiFi Connected: %s", wifi_connected ? "✅" : "❌");
+            ESP_LOGI(TAG, "Service Discovery: %s", service_discovery_active ? "✅" : "❌");
+            ESP_LOGI(TAG, "HowdyTTS Servers: %d discovered", discovered_servers_count);
             ESP_LOGI(TAG, "Free Heap: %lu bytes", esp_get_free_heap_size());
             
             if (wifi_connected) {
@@ -130,6 +207,19 @@ static void system_monitor_task(void *pvParameters)
                 }
             } else {
                 ESP_LOGI(TAG, "WiFi Status: Disconnected");
+            }
+            
+            // Show discovered servers
+            if (service_discovery_active && discovered_servers_count > 0) {
+                howdytts_server_info_t servers[5];
+                size_t num_servers = 0;
+                if (service_discovery_get_servers(servers, 5, &num_servers) == ESP_OK) {
+                    ESP_LOGI(TAG, "Available HowdyTTS Servers:");
+                    for (size_t i = 0; i < num_servers; i++) {
+                        ESP_LOGI(TAG, "  [%zu] %s (%s:%d)", i + 1, 
+                                 servers[i].hostname, servers[i].ip_addr, servers[i].port);
+                    }
+                }
             }
         }
         

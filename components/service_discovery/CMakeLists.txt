@@ -4,7 +4,8 @@ idf_component_register(
     INCLUDE_DIRS 
         "include"
     REQUIRES 
-        mdns
+        espressif__mdns
         esp_wifi
         lwip
-        esp_timer)
+        esp_timer
+        esp_netif)
