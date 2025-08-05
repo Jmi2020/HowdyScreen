@@ -96,6 +96,9 @@ ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
 ESP32-P4-WIFI6-Touch-LCD-XC-Demo.zip
 Research/ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
 
+# Research directory - external repositories and reference materials
+Research/
+
 # Test reports
 test_results/
 junit/
@@ -116,6 +119,11 @@ tags
 # Local configuration overrides
 local.conf
 private.conf
+
+# Secure credentials (never commit to git)
+credentials.conf
+*.credentials
+.secrets
 
 # Backup files
 /backup/

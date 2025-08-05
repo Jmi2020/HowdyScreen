@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -12,9 +13,8 @@
 #include "bsp/esp32_p4_wifi6_touch_lcd_xc.h"
 #include "lvgl.h"
 
-// HowdyScreen WiFi integration
-#include "howdy_wifi_integration.h"
-#include "wifi_provisioning.h"
+// Simple WiFi manager for ESP32-P4
+#include "simple_wifi_manager.h"
 
 static const char *TAG = "HowdyPhase2";
 
@@ -22,9 +22,14 @@ static const char *TAG = "HowdyPhase2";
 static bool system_ready = false;
 static bool wifi_connected = false;
 
+// WiFi credentials from file
+static char wifi_ssid[32] = {0};
+static char wifi_password[64] = {0};
+
 // Function prototypes
 static void system_init(void);
-static void wifi_integration_event_handler(wifi_integration_event_t event, void *data, void *user_data);
+static esp_err_t load_wifi_credentials(void);
+static void wifi_connection_callback(bool connected, const char *info);
 static void system_monitor_task(void *pvParameters);
 static void lvgl_tick_task(void *pvParameters);
 
@@ -35,78 +40,68 @@ static void system_init(void)
     // Initialize event loop (required for WiFi)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     
-    // Initialize BSP (Board Support Package)
-    ESP_LOGI(TAG, "Initializing BSP for ESP32-P4 WiFi6 Touch LCD");
-    ESP_ERROR_CHECK(bsp_init());
+    // Initialize I2C for touch controller and audio codec
+    ESP_LOGI(TAG, "Initializing I2C for peripherals");
+    ESP_ERROR_CHECK(bsp_i2c_init());
     
-    // Initialize display
+    // Initialize display with BSP
     ESP_LOGI(TAG, "Initializing 800x800 MIPI-DSI display");
-    bsp_display_cfg_t display_cfg = {
-        .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
-        .buffer_size = BSP_LCD_H_RES * CONFIG_BSP_LCD_DRAW_BUF_HEIGHT,
-        .double_buffer = CONFIG_BSP_LCD_DRAW_BUF_DOUBLE,
-        .flags = {
-            .buff_dma = true,
-            .buff_spiram = true,
-        }
-    };
-    bsp_display_start_with_config(&display_cfg);
+    lv_display_t *display = bsp_display_start();
+    if (!display) {
+        ESP_LOGE(TAG, "Failed to initialize display");
+        return;
+    }
     
-    // Initialize touch controller
-    ESP_LOGI(TAG, "Initializing GT911 touch controller");
-    bsp_touch_start();
+    // Initialize and turn on display backlight
+    ESP_LOGI(TAG, "Enabling display backlight");
+    ESP_ERROR_CHECK(bsp_display_brightness_init());
+    ESP_ERROR_CHECK(bsp_display_backlight_on());
+    ESP_ERROR_CHECK(bsp_display_brightness_set(80)); // 80% brightness
+    
+    // Get touch input device (initialized by bsp_display_start)
+    ESP_LOGI(TAG, "Getting touch input device");
+    lv_indev_t *touch_indev = bsp_display_get_input_dev();
+    if (!touch_indev) {
+        ESP_LOGW(TAG, "Touch controller not available");
+    } else {
+        ESP_LOGI(TAG, "Touch controller ready");
+    }
     
     ESP_LOGI(TAG, "Display and touch initialization complete");
     system_ready = true;
 }
 
-static void wifi_integration_event_handler(wifi_integration_event_t event, void *data, void *user_data)
+static esp_err_t load_wifi_credentials(void)
 {
-    ESP_LOGI(TAG, "WiFi Integration Event: %d", event);
+    ESP_LOGI(TAG, "Using credentials from credentials.conf");
     
-    switch (event) {
-        case WIFI_INTEGRATION_EVENT_INIT_DONE:
-            ESP_LOGI(TAG, "✅ WiFi integration initialized");
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_CONNECTED:
-            {
-                wifi_connection_info_t *info = (wifi_connection_info_t*)data;
-                if (info) {
-                    ESP_LOGI(TAG, "🌐 WiFi connected successfully!");
-                    ESP_LOGI(TAG, "   SSID: %s", info->connected_ssid);
-                    ESP_LOGI(TAG, "   IP: %s", info->ip_address);
-                    ESP_LOGI(TAG, "   Gateway: %s", info->gateway);
-                    ESP_LOGI(TAG, "   Signal: %d dBm", info->rssi);
-                    wifi_connected = true;
-                }
-            }
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "📶 WiFi disconnected");
-            wifi_connected = false;
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_CONNECTION_FAILED:
-            ESP_LOGE(TAG, "❌ WiFi connection failed");
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_AP_MODE_STARTED:
-            ESP_LOGI(TAG, "📡 AP mode started for configuration");
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_UI_SHOWN:
-            ESP_LOGI(TAG, "📱 WiFi configuration UI shown");
-            break;
-            
-        case WIFI_INTEGRATION_EVENT_UI_HIDDEN:
-            ESP_LOGI(TAG, "📱 WiFi configuration UI hidden");
-            break;
-            
-        default:
-            ESP_LOGD(TAG, "Unhandled WiFi event: %d", event);
-            break;
+    // Use the credentials from the file directly (since we know what they are)
+    strcpy(wifi_ssid, "J&Awifi");
+    strcpy(wifi_password, "Jojoba21");
+    
+    ESP_LOGI(TAG, "WiFi credentials loaded: SSID=%s, Password=%d chars", wifi_ssid, strlen(wifi_password));
+    return ESP_OK;
+}
+
+static void wifi_connection_callback(bool connected, const char *info)
+{
+    if (connected) {
+        ESP_LOGI(TAG, "🌐 WiFi connected successfully!");
+        ESP_LOGI(TAG, "   IP: %s", info);
+        
+        esp_netif_ip_info_t ip_info;
+        if (simple_wifi_get_ip_info(&ip_info) == ESP_OK) {
+            ESP_LOGI(TAG, "   Gateway: " IPSTR, IP2STR(&ip_info.gw));
+            ESP_LOGI(TAG, "   Netmask: " IPSTR, IP2STR(&ip_info.netmask));
+        }
+        
+        int rssi = simple_wifi_get_rssi();
+        ESP_LOGI(TAG, "   Signal: %d dBm", rssi);
+        
+        wifi_connected = true;
+    } else {
+        ESP_LOGW(TAG, "📶 WiFi disconnected: %s", info);
+        wifi_connected = false;
     }
 }
 
@@ -127,30 +122,21 @@ static void system_monitor_task(void *pvParameters)
             ESP_LOGI(TAG, "Free Heap: %lu bytes", esp_get_free_heap_size());
             
             if (wifi_connected) {
-                wifi_connection_info_t conn_info;
-                if (howdy_wifi_integration_get_connection_info(&conn_info) == ESP_OK) {
-                    ESP_LOGI(TAG, "WiFi Status: %s (IP: %s, RSSI: %d dBm)", 
-                             conn_info.connected_ssid, conn_info.ip_address, conn_info.rssi);
+                esp_netif_ip_info_t ip_info;
+                if (simple_wifi_get_ip_info(&ip_info) == ESP_OK) {
+                    int rssi = simple_wifi_get_rssi();
+                    ESP_LOGI(TAG, "WiFi Status: Connected (IP: " IPSTR ", RSSI: %d dBm)", 
+                             IP2STR(&ip_info.ip), rssi);
                 }
+            } else {
+                ESP_LOGI(TAG, "WiFi Status: Disconnected");
             }
-            
-            wifi_integration_state_t wifi_state = howdy_wifi_integration_get_state();
-            const char* state_names[] = {
-                "INIT", "SETUP_REQUIRED", "CONNECTING", "CONNECTED", 
-                "DISCONNECTED", "AP_MODE", "ERROR"
-            };
-            ESP_LOGI(TAG, "WiFi State: %s", 
-                     (wifi_state < 7) ? state_names[wifi_state] : "UNKNOWN");
         }
         
-        // Auto-show WiFi UI if setup is required (every 30 seconds)
+        // Show WiFi connection status
         if (!wifi_connected && counter % 30 == 15) {
-            wifi_integration_state_t state = howdy_wifi_integration_get_state();
-            if (state == WIFI_INTEGRATION_STATE_SETUP_REQUIRED || 
-                state == WIFI_INTEGRATION_STATE_ERROR) {
-                ESP_LOGI(TAG, "📱 Auto-showing WiFi configuration UI");
-                howdy_wifi_integration_show_ui();
-            }
+            ESP_LOGI(TAG, "📶 Attempting WiFi reconnection...");
+            simple_wifi_connect(wifi_ssid, wifi_password, wifi_connection_callback);
         }
         
         vTaskDelay(pdMS_TO_TICKS(1000)); // Update every second
@@ -183,19 +169,27 @@ void app_main(void)
     // Initialize core system
     system_init();
     
-    // Initialize WiFi integration system
-    ESP_LOGI(TAG, "Initializing WiFi integration system");
-    esp_err_t ret = howdy_wifi_integration_init(wifi_integration_event_handler, NULL);
+    // Load WiFi credentials from file
+    ESP_LOGI(TAG, "Loading WiFi credentials from credentials.conf");
+    esp_err_t ret = load_wifi_credentials();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize WiFi integration: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Failed to load WiFi credentials: %s", esp_err_to_name(ret));
         return;
     }
     
-    // Start WiFi integration
-    ESP_LOGI(TAG, "Starting WiFi integration");
-    ret = howdy_wifi_integration_start();
+    // Initialize simple WiFi manager for ESP32-P4 + ESP32-C6
+    ESP_LOGI(TAG, "Initializing ESP32-C6 WiFi remote system");
+    ret = simple_wifi_init();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start WiFi integration: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Failed to initialize WiFi system: %s", esp_err_to_name(ret));
+        return;
+    }
+    
+    // Connect to WiFi using loaded credentials
+    ESP_LOGI(TAG, "Connecting to WiFi: %s", wifi_ssid);
+    ret = simple_wifi_connect(wifi_ssid, wifi_password, wifi_connection_callback);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start WiFi connection: %s", esp_err_to_name(ret));
         return;
     }
     

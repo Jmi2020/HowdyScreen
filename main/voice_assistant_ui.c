@@ -640,3 +640,28 @@ esp_err_t va_ui_show_boot_screen(const char *message, uint32_t timeout_ms)
 
     return ESP_OK;
 }
+
+esp_err_t voice_assistant_ui_set_visibility(bool visible)
+{
+    if (!s_initialized) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (xSemaphoreTake(s_ui_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    if (visible) {
+        // Show main voice assistant UI
+        if (s_main_screen) {
+            lv_scr_load(s_main_screen);
+            ESP_LOGI(TAG, "Voice assistant UI shown");
+        }
+    } else {
+        // Hide UI - could switch to a blank screen or another screen
+        ESP_LOGI(TAG, "Voice assistant UI hidden");
+    }
+
+    xSemaphoreGive(s_ui_mutex);
+    return ESP_OK;
+}

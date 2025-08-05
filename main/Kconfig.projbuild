@@ -3,13 +3,13 @@ menu "HowdyScreen Configuration"
         string "WiFi SSID"
         default "YourWiFiNetwork"
         help
-            WiFi network name to connect to
+            WiFi network name to connect to. Set via menuconfig or credentials.conf
 
     config HOWDY_WIFI_PASSWORD
-        string "WiFi Password"
+        string "WiFi Password"  
         default "YourWiFiPassword"
         help
-            WiFi network password
+            WiFi network password. Set via menuconfig or credentials.conf
 
     config HOWDY_SERVER_IP
         string "HowdyTTS Server IP"

@@ -118,6 +118,14 @@ va_ui_state_t va_ui_get_state(void);
  */
 esp_err_t va_ui_show_boot_screen(const char *message, uint32_t timeout_ms);
 
+/**
+ * @brief Set visibility of the voice assistant UI
+ * 
+ * @param visible true to show UI, false to hide UI
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t voice_assistant_ui_set_visibility(bool visible);
+
 #ifdef __cplusplus
 }
 #endif

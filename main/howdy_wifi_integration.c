@@ -39,7 +39,6 @@ static struct {
 static void wifi_prov_event_handler(wifi_prov_event_t event, void *data, void *user_data);
 static void wifi_ui_event_handler(wifi_ui_event_data_t *event_data, void *user_data);
 static void wifi_scan_task(void *pvParameters);
-static void update_connection_progress(void);
 static void notify_integration_event(wifi_integration_event_t event, void *data);
 static esp_err_t transition_to_state(wifi_integration_state_t new_state);
 
@@ -416,21 +415,6 @@ static void wifi_scan_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-static void update_connection_progress(void)
-{
-    if (s_wifi_integration.state == WIFI_INTEGRATION_STATE_CONNECTING) {
-        uint32_t elapsed = (xTaskGetTickCount() * portTICK_PERIOD_MS) - s_wifi_integration.connection_start_time;
-        
-        // Simulate progress based on elapsed time (max 30 seconds)
-        s_wifi_integration.connection_progress = (elapsed * 90) / 30000 + 10;
-        if (s_wifi_integration.connection_progress > 90) {
-            s_wifi_integration.connection_progress = 90;
-        }
-        
-        wifi_ui_show_connection_progress(s_wifi_integration.current_ssid, 
-                                       s_wifi_integration.connection_progress);
-    }
-}
 
 static void notify_integration_event(wifi_integration_event_t event, void *data)
 {
