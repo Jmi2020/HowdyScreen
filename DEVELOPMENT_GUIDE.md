@@ -1356,6 +1356,74 @@ I (1247) HowdyIntegrated: Voice streaming to HowdyTTS server - 0.75 level
 - Touch: CST9217 via I2C
 - BSP: Waveshare ESP32-P4-WIFI6-Touch-LCD-3.4C
 
+## External Directory Access Granted
+
+### **Claude Code Session Access Rights**
+
+For future Claude Code sessions, grant access to these external directories that contain essential project resources:
+
+#### **ESP32-P4 Hardware Documentation & Examples**
+```
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/Research/ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
+├── ESP-IDF/                           # Working hardware examples
+│   ├── 01_display_panel/              # Display initialization patterns
+│   ├── 08_lvgl_display_panel/         # LVGL integration examples
+│   └── 09_audio_recorder/             # Audio codec configuration
+├── Arduino/                           # Arduino reference implementations
+└── docs/                              # Hardware schematics and datasheets
+```
+
+#### **HowdyTTS Server Integration Reference**
+```
+/Users/silverlinings/Desktop/Coding/RBP/HowdyTTS/
+├── run_voice_assistant.py             # Main state machine and conversation flow
+├── led_matrix_controller.py           # Device state synchronization (POST /state, /speak)
+├── wireless_device_manager.py         # Multi-device management and room assignment
+├── network_audio_source.py            # UDP audio server and OPUS compression
+├── device_discovery.py                # UDP broadcast discovery protocol
+└── config/                            # Server configuration and device registration
+```
+
+#### **Component Development References**
+```
+/Users/silverlinings/.espressif/       # ESP-IDF toolchain and components
+/Users/silverlinings/esp/              # ESP-IDF installation directory
+```
+
+#### **Why These Directories Are Critical**
+
+1. **Hardware Examples** (`/Research/ESP32-P4-WIFI6-Touch-LCD-XC-Demo/`):
+   - Contains proven working code for display, touch, and audio initialization
+   - Essential for troubleshooting hardware-specific issues
+   - Reference for correct BSP usage patterns and configuration
+
+2. **HowdyTTS Server** (`/Desktop/Coding/RBP/HowdyTTS/`):
+   - Complete protocol specification and state management
+   - Network architecture and audio streaming protocols
+   - Device discovery and registration mechanisms
+   - Critical for ensuring ESP32-P4 integration compatibility
+
+3. **ESP-IDF Environment** (`/.espressif/`, `/esp/`):
+   - Toolchain configuration and component management
+   - SDK examples and component documentation
+   - Build system configuration and dependencies
+
+#### **Quick Access Commands for Future Sessions**
+
+When starting a new Claude Code session, immediately grant access to:
+
+```bash
+# Essential project resources
+/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/Research/
+/Users/silverlinings/Desktop/Coding/RBP/HowdyTTS/
+
+# Development environment (optional, for deep troubleshooting)
+/Users/silverlinings/.espressif/
+/Users/silverlinings/esp/
+```
+
+This ensures continuity of development and access to critical reference materials without needing to re-establish context.
+
 ## Quick Reference
 
 ### **Critical File Paths**
