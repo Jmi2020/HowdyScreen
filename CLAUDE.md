@@ -1,71 +1,90 @@
 # ESP32-P4 HowdyScreen Project Configuration
 
-## Project Analysis Summary
+## Project Analysis Summary - Updated August 2025
 
-**Technology Stack Detected:**
-- **Platform**: ESP32-P4 dual-core RISC-V microcontroller
-- **Framework**: ESP-IDF v5.3+ (Espressif IoT Development Framework)
-- **Build System**: CMake with ESP-IDF component system
-- **UI Framework**: LVGL v8.3+ for graphics and touch interface
-- **Audio**: I2S with ESP codec components (ES8311/ES7210)
-- **Connectivity**: ESP32-C6 co-processor via SDIO for WiFi 6
-- **Display**: MIPI-DSI 800x800 round LCD with CST9217 touch controller
-- **Communication**: WebSocket, mDNS, Opus audio encoding
+**Current Technology Stack:**
+- **Platform**: ESP32-P4 dual-core RISC-V microcontroller with ESP32-C6 co-processor
+- **Framework**: ESP-IDF v5.5.0 (Latest stable) with CMake component system
+- **UI Framework**: LVGL v8.4.0 with working 800x800 round display interface
+- **BSP**: Waveshare ESP32-P4-WIFI6-Touch-LCD-XC board support package
+- **Display**: MIPI-DSI 800x800 round LCD with CST9217 touch (Working)
+- **UI State**: Dynamic backgrounds, Howdy character animations, voice assistant states
+- **Audio**: I2S pipeline prepared, codec components ready for integration
+- **Network**: WiFi remote component available, WebSocket client prepared
+- **Service Discovery**: mDNS component ready for HowdyTTS server detection
 
-**Key Project Areas:**
-1. **Embedded Systems Architecture** - Dual-chip ESP32-P4 + ESP32-C6 design
-2. **Real-time Audio Processing** - I2S capture, codec integration, Opus encoding
-3. **Graphics & UI Development** - LVGL-based touch interface with state management
-4. **Hardware Drivers** - Display, touch, audio codec, SDIO communication
-5. **Network Communications** - WiFi remote, WebSocket, mDNS service discovery
-6. **System Integration** - FreeRTOS task coordination, memory management
+**Current Project Status:**
+✅ **COMPLETED PHASES:**
+- Phase 1: Hardware initialization and BSP integration
+- Phase 2: LVGL display system with round 800x800 interface  
+- Phase 3A: UI Manager with Howdy character animations and state management
+- Phase 3B: Dynamic background colors and voice assistant state visualization
+
+🚧 **ACTIVE INTEGRATION PHASE - PRIORITY TASKS:**
+1. **Network Stack Integration** - WiFi connectivity with ESP32-C6 SDIO
+2. **HowdyTTS WebSocket Client** - Real-time audio streaming protocol
+3. **Audio Pipeline Activation** - I2S capture, processing, and codec integration
+4. **Service Discovery Implementation** - mDNS for automatic server detection
+5. **Complete Voice Assistant Loop** - Audio capture → STT → TTS → Audio output
+
+**Component Architecture (Ready for Integration):**
+- `ui_manager/` - ✅ Working circular UI with state management
+- `audio_processor/` - 🚧 Prepared pipeline, needs activation
+- `websocket_client/` - 🚧 Protocol ready, needs network integration  
+- `service_discovery/` - 🚧 mDNS ready, needs WiFi connection
+- `temp_waveshare/` - ✅ BSP components integrated and working
 
 ---
 
 ## AI Development Team Configuration
-*Optimized by team-configurator on 2025-08-04*
+*Optimized for Integration Phase - Updated August 5, 2025*
 
-### Core Development Specialists
+### Integration-Phase Specialists (Priority Assignments)
 
-#### **Embedded Systems Architecture & Component Integration**
-- **Primary**: @code-archaeologist
-  - ESP-IDF component dependency analysis and CMakeLists.txt optimization
-  - Hardware driver exploration and BSP component deep-dive
-  - Dual-chip architecture mapping (ESP32-P4 + ESP32-C6 SDIO)
-  - Component interface design and inter-component communication patterns
-  - IDF component manager manifest analysis and dependency resolution
+#### **Network Integration Lead** 🔥 HIGH PRIORITY
+- **Primary**: @api-architect  
+- **Focus**: ESP32-C6 WiFi Remote + WebSocket + Service Discovery
+  - **IMMEDIATE**: Configure ESP32-C6 SDIO WiFi remote with esp_wifi_remote component
+  - **NEXT**: Integrate HowdyTTS WebSocket client with audio streaming protocol
+  - **THEN**: Implement mDNS service discovery for automatic server detection
+  - **OPTIMIZE**: Network buffer management and connection resilience
+  - **COORDINATE**: Real-time audio streaming over WebSocket with Opus encoding
 
-#### **Real-time Audio & Performance Engineering**
+#### **Audio Pipeline Activation Specialist** 🔥 HIGH PRIORITY  
 - **Primary**: @performance-optimizer
-  - I2S audio pipeline optimization with ES8311/ES7210 codec integration
-  - FreeRTOS task coordination, priority tuning, and memory management
-  - DMA buffer sizing and audio latency reduction (target: <50ms)
-  - Opus encoding optimization for real-time streaming
-  - System resource profiling and power consumption analysis
+- **Focus**: I2S Audio Capture + Processing + Real-time Streaming
+  - **IMMEDIATE**: Activate I2S audio capture with codec integration (ES8311/ES7210)
+  - **NEXT**: Integrate dual_i2s_manager with audio_processor pipeline
+  - **THEN**: Implement voice activity detection and continuous audio processing
+  - **OPTIMIZE**: Audio latency reduction (target: <50ms), DMA buffer sizing
+  - **COORDINATE**: Audio pipeline with WebSocket streaming and UI state feedback
 
-#### **LVGL UI & Round Display Specialist**
-- **Primary**: @frontend-developer
-  - LVGL 8.3+ circular UI design for 800x800 round display
-  - CST9217 touch controller integration and gesture recognition
-  - Voice assistant state visualization and feedback animations
-  - MIPI-DSI display optimization and framebuffer management
-  - Touch calibration and multi-touch handling for round screen
-
-#### **Network Protocol & WebSocket Specialist**
-- **Primary**: @api-architect
-  - HowdyTTS WebSocket protocol design and audio streaming optimization
-  - ESP32-C6 WiFi remote configuration and 6GHz/2.4GHz handling
-  - mDNS service discovery with failover and connection recovery
-  - Opus audio codec integration with WebSocket frames
-  - Network buffer management and real-time streaming protocols
-
-#### **Hardware Integration & BSP Developer**
+#### **System Integration Orchestrator** 🔥 HIGH PRIORITY
 - **Primary**: @backend-developer
-  - Board Support Package (BSP) development and hardware abstraction
-  - ESP32-P4 peripheral configuration (I2S, SPI, MIPI-DSI, SDIO)
-  - Inter-processor communication between ESP32-P4 and ESP32-C6
-  - Component-based architecture implementation and CMake integration
-  - Hardware diagnostic tools and initialization sequence optimization
+- **Focus**: Complete Voice Assistant Loop Integration
+  - **IMMEDIATE**: Coordinate network + audio + UI components into unified system
+  - **NEXT**: Implement WiFi provisioning and connection management
+  - **THEN**: Integrate audio capture → WebSocket → TTS → audio output loop
+  - **OPTIMIZE**: FreeRTOS task coordination, memory management, error recovery
+  - **COORDINATE**: Cross-component communication and state synchronization
+
+#### **UI State & Feedback Integration** 🔥 MEDIUM PRIORITY
+- **Primary**: @frontend-developer  
+- **Focus**: Real-time UI Updates + Touch Integration + Visual Feedback
+  - **IMMEDIATE**: Integrate touch events with voice assistant controls
+  - **NEXT**: Connect UI state updates with audio pipeline events  
+  - **THEN**: Implement real-time audio level visualization and speaking indicators
+  - **OPTIMIZE**: UI responsiveness during audio processing, circular animations
+  - **COORDINATE**: UI state with network events and audio pipeline status
+
+#### **Component Architecture & Dependencies** 🔥 MEDIUM PRIORITY
+- **Primary**: @code-archaeologist
+- **Focus**: Component Integration Analysis + Build System Optimization
+  - **IMMEDIATE**: Analyze cross-component dependencies and interface compatibility
+  - **NEXT**: Resolve CMakeLists.txt conflicts and component integration issues
+  - **THEN**: Map component communication patterns and data flow
+  - **OPTIMIZE**: Build system performance and component loading sequence
+  - **COORDINATE**: Component version compatibility and interface evolution
 
 ### Quality & Documentation Specialists
 
@@ -95,154 +114,233 @@
 
 ---
 
-## How to Use Your Embedded Systems AI Team
+## How to Use Your Integration-Phase AI Team
 
-### **Audio Pipeline Development**
-```
-"@performance-optimizer optimize the I2S audio capture pipeline for low latency"
-"@backend-developer integrate the ES8311 codec with the audio processor component"
-```
+### **IMMEDIATE PRIORITY - Network Connectivity** 🚀
+```bash
+# Start WiFi integration with ESP32-C6 SDIO
+"@api-architect configure ESP32-C6 WiFi remote using esp_wifi_remote component"
+"@api-architect implement WiFi connection management with dual-chip architecture"
 
-### **UI & Display Work**
-```
-"@frontend-developer create a circular audio level meter using LVGL"
-"@frontend-developer implement touch gesture handling for the round display"
-```
-
-### **Network & Communication**
-```
-"@api-architect design the WebSocket protocol for HowdyTTS audio streaming"
-"@api-architect implement mDNS discovery for automatic server detection"
+# WebSocket client integration
+"@api-architect integrate HowdyTTS WebSocket client with audio streaming protocol"
+"@api-architect implement WebSocket connection with automatic server discovery"
 ```
 
-### **Hardware Integration**
-```
-"@backend-developer configure the ESP32-C6 SDIO interface for WiFi remote"
-"@code-archaeologist analyze the BSP component structure for display initialization"
+### **IMMEDIATE PRIORITY - Audio Pipeline Activation** 🔊
+```bash
+# Activate I2S audio capture
+"@performance-optimizer activate I2S audio capture using components/audio_processor"
+"@performance-optimizer integrate dual_i2s_manager with codec initialization"
+
+# Real-time audio processing
+"@performance-optimizer optimize audio latency for real-time voice processing"
+"@performance-optimizer implement voice activity detection with continuous processing"
 ```
 
-### **Code Quality & Reviews**
-```
-"@code-reviewer check this audio pipeline code for real-time safety"
-"@performance-optimizer profile memory usage in the display framebuffer"
+### **IMMEDIATE PRIORITY - System Integration** ⚙️
+```bash
+# Coordinate complete voice assistant loop
+"@backend-developer integrate network + audio + UI into unified voice assistant system"
+"@backend-developer implement audio capture → WebSocket → TTS → output pipeline"
+
+# Task coordination and error handling
+"@backend-developer optimize FreeRTOS task coordination for multi-component system"
+"@backend-developer implement robust error recovery and connection management"
 ```
 
-### **Documentation & Analysis**
+### **MEDIUM PRIORITY - UI Enhancement** 🎨
+```bash
+# Touch integration and real-time feedback
+"@frontend-developer integrate CST9217 touch events with voice assistant controls"
+"@frontend-developer implement real-time audio level visualization on circular display"
+
+# UI state synchronization
+"@frontend-developer connect UI state updates with audio pipeline and network events"
+"@frontend-developer optimize UI responsiveness during active audio processing"
 ```
-"@documentation-specialist create a hardware setup guide for ESP32-P4 connections"
-"@project-analyst analyze component dependencies for potential conflicts"
+
+### **SUPPORTING TASKS - Analysis & Quality** 🔍
+```bash
+# Component integration analysis
+"@code-archaeologist analyze component dependencies for audio + network integration"
+"@code-archaeologist resolve CMakeLists.txt conflicts between components"
+
+# Code quality and safety
+"@code-reviewer validate real-time safety in audio + network integration code"
+"@performance-optimizer profile memory usage during complete voice assistant operation"
 ```
 
 ---
 
-## Optimized AI Agent Workflows for ESP32-P4 Development
+## Integration-Phase Workflows for ESP32-P4 Voice Assistant
 
-### **Component-Based Audio Pipeline Development**
-1. **@code-archaeologist** - Explore `components/audio_processor/` structure and I2S driver integration
-2. **@performance-optimizer** - Profile audio latency and optimize DMA buffers for ES8311/ES7210
-3. **@backend-developer** - Implement codec initialization and audio task coordination
-4. **@api-architect** - Design audio streaming protocol with Opus encoding
-5. **@code-reviewer** - Validate real-time safety and memory management
+### **🔥 PRIORITY WORKFLOW: Complete Network Stack Integration**
+1. **@api-architect** - Configure ESP32-C6 WiFi remote using managed_components/espressif__esp_wifi_remote
+2. **@backend-developer** - Implement WiFi provisioning and connection management
+3. **@api-architect** - Integrate components/websocket_client with HowdyTTS streaming protocol
+4. **@api-architect** - Implement components/service_discovery mDNS for server auto-detection
+5. **@performance-optimizer** - Optimize network buffers and connection resilience
+6. **@code-reviewer** - Validate network error handling and recovery mechanisms
 
-### **Round Display UI & Touch System**
-1. **@frontend-developer** - Create LVGL circular widgets for voice assistant states
-2. **@backend-developer** - Integrate CST9217 touch controller with `components/ui_manager/`
-3. **@performance-optimizer** - Optimize MIPI-DSI refresh rates and framebuffer usage
-4. **@project-analyst** - Analyze UI component dependencies and memory footprint
-5. **@code-reviewer** - Review touch event handling and UI thread safety
+### **🔥 PRIORITY WORKFLOW: Audio Pipeline Activation**
+1. **@performance-optimizer** - Activate I2S capture in components/audio_processor with codec integration
+2. **@backend-developer** - Initialize dual_i2s_manager for ES8311/ES7210 codec communication
+3. **@performance-optimizer** - Implement continuous_audio_processor for real-time voice detection
+4. **@api-architect** - Integrate audio streaming with WebSocket protocol for HowdyTTS
+5. **@performance-optimizer** - Optimize audio latency and DMA buffer management (<50ms target)
+6. **@code-reviewer** - Validate real-time audio safety and memory management
 
-### **Dual-Chip Network Architecture**
-1. **@api-architect** - Design WebSocket protocol in `components/websocket_client/`
-2. **@code-archaeologist** - Analyze ESP32-C6 SDIO communication patterns
-3. **@backend-developer** - Configure WiFi remote with `esp_wifi_remote` component
-4. **@performance-optimizer** - Optimize network buffer sizes and connection handling
-5. **@code-reviewer** - Validate network error recovery and failover logic
+### **🔥 PRIORITY WORKFLOW: Unified Voice Assistant System**
+1. **@backend-developer** - Coordinate network + audio + UI components in main application
+2. **@backend-developer** - Implement complete audio capture → WebSocket → TTS → output loop
+3. **@frontend-developer** - Integrate UI state updates with audio pipeline events
+4. **@performance-optimizer** - Balance FreeRTOS task priorities for real-time performance
+5. **@api-architect** - Implement bidirectional WebSocket communication for STT/TTS
+6. **@code-reviewer** - Validate cross-component communication and error recovery
 
-### **BSP & Hardware Integration**
-1. **@backend-developer** - Develop `components/bsp/` for hardware abstraction layer
-2. **@code-archaeologist** - Map peripheral configurations (I2S, SPI, MIPI-DSI)
-3. **@project-analyst** - Analyze hardware dependencies and component interfaces
-4. **@performance-optimizer** - Optimize initialization sequences and power management
-5. **@documentation-specialist** - Create hardware setup and pinout documentation
+### **🔄 SUPPORTING WORKFLOW: UI Enhancement & Touch Integration**
+1. **@frontend-developer** - Integrate CST9217 touch events with voice assistant controls
+2. **@frontend-developer** - Implement real-time audio level visualization on circular display
+3. **@frontend-developer** - Connect UI state machine with network and audio events
+4. **@performance-optimizer** - Optimize UI responsiveness during audio processing
+5. **@code-reviewer** - Review UI thread safety and touch event handling
 
-### **Service Discovery & mDNS Integration**
-1. **@api-architect** - Implement mDNS in `components/service_discovery/`
-2. **@backend-developer** - Integrate HowdyTTS server auto-discovery
-3. **@performance-optimizer** - Optimize network scanning and connection establishment
-4. **@code-reviewer** - Review service discovery timeout and error handling
-
----
-
-## Optimized Commands for ESP32-P4 Development
-
-### Component Development Tasks
-- **Audio System**: "@performance-optimizer optimize components/audio_processor I2S pipeline for <50ms latency"
-- **Round Display**: "@frontend-developer create circular LVGL widgets in components/ui_manager for voice states"
-- **WebSocket Client**: "@api-architect implement HowdyTTS streaming protocol in components/websocket_client"
-- **BSP Integration**: "@backend-developer develop hardware abstraction layer in components/bsp"
-- **Service Discovery**: "@api-architect add HowdyTTS auto-discovery to components/service_discovery"
-
-### Hardware & Performance Analysis
-- **Driver Deep-dive**: "@code-archaeologist analyze CST9217 touch integration with MIPI-DSI display"
-- **Memory Profiling**: "@performance-optimizer profile PSRAM usage during audio streaming and UI updates"
-- **SDIO Analysis**: "@code-archaeologist explore ESP32-C6 SDIO communication in esp_wifi_remote"
-- **Task Coordination**: "@performance-optimizer balance FreeRTOS priorities for audio/UI/network tasks"
-- **Power Optimization**: "@backend-developer implement power management for dual-chip architecture"
-
-### Integration & Quality Assurance
-- **Component Dependencies**: "@project-analyst resolve CMakeLists.txt conflicts between components"
-- **Real-time Safety**: "@code-reviewer validate ISR safety in audio pipeline and touch handlers"
-- **Network Resilience**: "@api-architect test WebSocket reconnection during WiFi handoff"
-- **Hardware Diagnostic**: "@backend-developer create diagnostic tools for ESP32-P4 peripheral status"
-
-### Complex Integration Workflows
-- **Complete Audio Chain**: 
-  - "@code-archaeologist map audio flow from I2S to WebSocket"
-  - "@performance-optimizer optimize end-to-end audio latency"
-  - "@api-architect integrate Opus encoding with streaming protocol"
-
-- **Touch-to-UI Pipeline**:
-  - "@backend-developer integrate CST9217 touch events with LVGL"
-  - "@frontend-developer create responsive circular UI for touch gestures"
-  - "@performance-optimizer optimize touch response time on round display"
-
-- **Network-to-Audio Integration**:
-  - "@api-architect design bidirectional audio streaming over WebSocket"
-  - "@backend-developer coordinate ESP32-C6 WiFi with ESP32-P4 audio processing"
-  - "@performance-optimizer minimize audio buffer underruns during network fluctuations"
+### **🔧 SUPPORTING WORKFLOW: Component Architecture Optimization**
+1. **@code-archaeologist** - Analyze cross-component dependencies and interface compatibility
+2. **@project-analyst** - Resolve CMakeLists.txt conflicts and build system optimization
+3. **@code-archaeologist** - Map data flow between audio_processor, websocket_client, ui_manager
+4. **@performance-optimizer** - Profile complete system memory usage and optimization
+5. **@code-reviewer** - Validate component integration safety and error boundaries
 
 ---
 
+## Ready-to-Use Integration Commands
+
+### **🚀 START HERE - Network Integration Commands**
+- **WiFi Setup**: `@api-architect configure ESP32-C6 WiFi remote using esp_wifi_remote component`
+- **WebSocket Integration**: `@api-architect integrate components/websocket_client with HowdyTTS protocol`
+- **Service Discovery**: `@api-architect implement mDNS server discovery in components/service_discovery`
+- **Network Resilience**: `@performance-optimizer optimize WiFi connection and WebSocket reliability`
+
+### **🔊 NEXT PRIORITY - Audio Integration Commands**
+- **I2S Activation**: `@performance-optimizer activate I2S audio capture in components/audio_processor`
+- **Codec Integration**: `@backend-developer initialize ES8311/ES7210 codec with dual_i2s_manager`
+- **Audio Processing**: `@performance-optimizer implement real-time voice activity detection`
+- **Audio Streaming**: `@api-architect integrate audio pipeline with WebSocket streaming`
+
+### **⚙️ SYSTEM INTEGRATION - Complete Voice Assistant Commands**
+- **Unified Integration**: `@backend-developer integrate network + audio + UI into complete voice assistant`
+- **Voice Loop**: `@backend-developer implement audio capture → WebSocket → TTS → output pipeline`
+- **Task Coordination**: `@performance-optimizer optimize FreeRTOS task priorities for real-time performance`
+- **Error Recovery**: `@backend-developer implement robust error handling and connection management`
+
+### **🎨 UI ENHANCEMENT - Touch & Visual Feedback Commands**
+- **Touch Integration**: `@frontend-developer integrate CST9217 touch events with voice controls`
+- **Audio Visualization**: `@frontend-developer implement real-time audio level meter on circular display`
+- **State Feedback**: `@frontend-developer connect UI states with audio pipeline events`
+- **UI Optimization**: `@performance-optimizer optimize UI responsiveness during audio processing`
+
+### **🔍 ANALYSIS & QUALITY - Component Integration Commands**
+- **Dependency Analysis**: `@code-archaeologist analyze cross-component dependencies and conflicts`
+- **Build Optimization**: `@project-analyst resolve CMakeLists.txt integration issues`
+- **Memory Profiling**: `@performance-optimizer profile complete system memory usage`
+- **Safety Validation**: `@code-reviewer validate real-time safety in integrated system`
+
+### **🧪 TESTING & DEBUGGING - Diagnostic Commands**
+- **Component Testing**: `@backend-developer create diagnostic tools for component integration status`
+- **Audio Pipeline Testing**: `@performance-optimizer test complete audio capture → streaming → output chain`
+- **Network Resilience Testing**: `@api-architect test WebSocket reconnection and failover scenarios`
+- **System Integration Testing**: `@code-reviewer validate complete voice assistant integration`
+
 ---
 
-## Key Optimizations Made
+## Integration-Phase Team Configuration Summary
 
-### 1. **Component-Focused Agent Specialization**
-- Agents now specifically target your 5 core components: `audio_processor`, `bsp`, `ui_manager`, `websocket_client`, `service_discovery`
-- Each specialist understands your component-based ESP-IDF architecture
+### ✅ **PROJECT STATUS RECOGNITION**
+Your ESP32-P4 HowdyScreen project has successfully completed foundational phases:
+- **Hardware & BSP**: ESP32-P4 + ESP32-C6 dual-chip architecture working
+- **Display System**: 800x800 round MIPI-DSI display with LVGL integration
+- **UI Framework**: Howdy character animations with dynamic state backgrounds
+- **Component Architecture**: 5 core components ready for integration
 
-### 2. **Hardware-Specific Expertise**
-- **Round Display Focus**: LVGL agents optimized for 800x800 circular UI design
-- **Dual-Chip Architecture**: Specialists understand ESP32-P4 + ESP32-C6 SDIO communication
-- **Real-time Audio**: Performance agents tuned for <50ms latency requirements
+### 🔥 **OPTIMIZED FOR CURRENT PRIORITIES** 
+The AI team configuration now focuses on **Integration Phase** priorities:
+1. **Network Stack Activation** - ESP32-C6 WiFi + WebSocket + mDNS
+2. **Audio Pipeline Integration** - I2S capture + processing + streaming
+3. **Complete Voice Assistant Loop** - Audio → Network → TTS → Output
+4. **Real-time System Coordination** - FreeRTOS + component synchronization
 
-### 3. **Integration Workflow Optimization**
-- Multi-agent workflows for complex tasks (audio chain, touch pipeline, network integration)
-- Component dependency analysis and CMake optimization focus
-- Real-time safety validation for FreeRTOS dual-core architecture
+### 🎯 **SPECIALIST ASSIGNMENTS TAILORED TO ESP-IDF 5.5**
+- **@api-architect**: Network integration specialist for dual-chip WiFi + WebSocket
+- **@performance-optimizer**: Real-time audio pipeline and system performance
+- **@backend-developer**: System integration orchestrator for complete voice assistant
+- **@frontend-developer**: UI enhancement specialist for touch + visual feedback
+- **@code-archaeologist**: Component architecture analyst for integration dependencies
 
-### 4. **ESP-IDF Ecosystem Alignment**
-- Agents understand your IDF component manager dependencies
-- CMakeLists.txt and build system optimization expertise
-- ESP-IDF 5.3+ and advanced component integration knowledge
+### 🚀 **READY-TO-USE COMMANDS**
+Your team is optimized with specific, actionable commands for immediate integration work:
+- Network connectivity setup with ESP32-C6 SDIO
+- I2S audio pipeline activation with codec integration
+- WebSocket client integration with HowdyTTS protocol
+- Complete voice assistant system coordination
 
 ---
 
-Your optimized embedded systems AI team is ready for ESP32-P4 HowdyScreen development!
+## Previous Configuration Analysis - Key Optimizations Made
 
-**Component Quick Start Commands:**
-- "@code-archaeologist explore components/audio_processor/ structure and I2S integration patterns"
-- "@frontend-developer design circular LVGL voice assistant interface in components/ui_manager/"
-- "@api-architect implement HowdyTTS WebSocket streaming in components/websocket_client/"
-- "@performance-optimizer profile audio latency across the complete pipeline"
-- "@backend-developer create hardware diagnostic tools for ESP32-P4 peripheral validation"
+### 1. **Integration-Phase Priority Focus**
+- **Before**: Generic component development tasks
+- **Now**: Specific integration priorities based on current project state
+- **Focus**: Network activation, audio pipeline, and complete voice assistant integration
+
+### 2. **Project State Awareness**
+- **Before**: Assumed early development phase
+- **Now**: Recognizes completed UI/display work and ready components
+- **Focus**: Building on existing foundation rather than starting from scratch
+
+### 3. **ESP-IDF 5.5 Optimization**
+- **Before**: Generic ESP-IDF 5.3+ guidance
+- **Now**: Specific ESP-IDF 5.5 with available managed components
+- **Focus**: Using esp_wifi_remote, esp_websocket_client, mdns components
+
+### 4. **Real-World Task Prioritization**
+- **Before**: Balanced across all development areas
+- **Now**: High-priority network and audio integration, medium-priority UI enhancement
+- **Focus**: Completing voice assistant functionality efficiently
+
+### 5. **Component Integration Specialization**
+- **Before**: Individual component development
+- **Now**: Cross-component integration and system coordination
+- **Focus**: Audio + Network + UI working together as unified system
+
+---
+
+## Your Integration-Ready ESP32-P4 HowdyScreen AI Team is Optimized!
+
+### **🚀 Start Integration Immediately:**
+```bash
+# Begin network connectivity (highest priority)
+"@api-architect configure ESP32-C6 WiFi remote using esp_wifi_remote component"
+
+# Activate audio pipeline (highest priority)  
+"@performance-optimizer activate I2S audio capture in components/audio_processor"
+
+# Coordinate complete system (highest priority)
+"@backend-developer integrate network + audio + UI into unified voice assistant system"
+```
+
+### **🎯 Integration Phase Focus:**
+- **Network First**: Get ESP32-C6 WiFi + WebSocket + mDNS working
+- **Audio Next**: Activate I2S capture and real-time processing
+- **System Integration**: Coordinate complete voice assistant loop
+- **UI Enhancement**: Add touch controls and visual feedback
+
+### **✅ Ready Components:**
+- UI Manager with working circular display and animations
+- Audio Processor with prepared I2S and codec integration
+- WebSocket Client with HowdyTTS protocol implementation  
+- Service Discovery with mDNS server detection
+- Waveshare BSP with complete hardware abstraction
+
+**Your ESP32-P4 voice assistant is ready for the final integration push!**

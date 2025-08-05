@@ -10,20 +10,23 @@
 #include "esp_event.h"
 
 // BSP and display components
-#include "bsp/esp32_p4_wifi6_touch_lcd_xc.h"
+#include "esp32_p4_wifi6_touch_lcd_xc.h"
 #include "lvgl.h"
 
 // Simple WiFi manager for ESP32-P4
-#include "simple_wifi_manager.h"
+// #include "simple_wifi_manager.h"
 
 // Service discovery for HowdyTTS servers
-#include "service_discovery.h"
+// #include "service_discovery.h"
 
 // HowdyTTS HTTP client (REST API)
-#include "howdytts_http_client.h"
+// #include "howdytts_http_client.h"
 
 // HowdyTTS WebSocket client (Real-time voice)
-#include "websocket_client.h"
+// #include "websocket_client.h"
+
+// UI Manager for enhanced voice assistant interface
+// #include "ui_manager.h"
 
 static const char *TAG = "HowdyPhase3B";
 
@@ -91,6 +94,20 @@ static void system_init(void)
     }
     
     ESP_LOGI(TAG, "Display and touch initialization complete");
+    
+    // TODO: Initialize UI Manager for enhanced voice assistant interface
+    // ESP_LOGI(TAG, "Initializing UI Manager");
+    // esp_err_t ui_ret = // ui_manager_init();
+    // if (ui_ret != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to initialize UI Manager: %s", esp_err_to_name(ui_ret));
+    //     return;
+    // }
+    // 
+    // // Set initial UI state
+    // // ui_manager_set_state(UI_STATE_INIT);
+    // // ui_manager_update_status("System starting...");
+    // ESP_LOGI(TAG, "UI Manager initialized successfully");
+    
     system_ready = true;
 }
 
@@ -123,11 +140,19 @@ static void wifi_connection_callback(bool connected, const char *info)
         
         wifi_connected = true;
         
+        // TODO: Update UI with WiFi connected status
+        // // ui_manager_set_state(UI_STATE_IDLE);
+        // // ui_manager_update_status("Connected to WiFi");
+        // // ui_manager_set_wifi_strength(85);  // Convert RSSI to percentage later
+        
         // Start service discovery now that we have network connectivity
         ESP_LOGI(TAG, "🔍 Starting HowdyTTS server discovery...");
+        // ui_manager_update_status("Searching for HowdyTTS server...");
         esp_err_t ret = start_service_discovery();
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to start service discovery: %s", esp_err_to_name(ret));
+            // ui_manager_set_state(UI_STATE_ERROR);
+            // ui_manager_update_status("Service discovery failed");
         }
         
     } else {
@@ -138,6 +163,11 @@ static void wifi_connection_callback(bool connected, const char *info)
         websocket_client_active = false;
         discovered_servers_count = 0;
         connected_servers_count = 0;
+        
+        // Update UI with disconnected state
+        // ui_manager_set_state(UI_STATE_ERROR);
+        // ui_manager_update_status("WiFi disconnected");
+        // ui_manager_set_wifi_strength(0);
     }
 }
 
@@ -150,6 +180,11 @@ static void howdytts_server_discovered_callback(const howdytts_server_info_t *se
     ESP_LOGI(TAG, "   Port: %d", server_info->port);
     ESP_LOGI(TAG, "   Version: %s", server_info->version[0] ? server_info->version : "unknown");
     ESP_LOGI(TAG, "   Secure: %s", server_info->secure ? "yes" : "no");
+    
+    // Update UI with server discovery
+    char status_text[128];
+    snprintf(status_text, sizeof(status_text), "Found HowdyTTS: %s", server_info->hostname);
+    // ui_manager_update_status(status_text);
     
     // Test connectivity to the discovered server
     uint32_t latency_ms = 0;
@@ -228,21 +263,28 @@ static void websocket_event_callback(ws_client_state_t state, ws_message_type_t 
     switch (state) {
         case WS_CLIENT_STATE_CONNECTING:
             ESP_LOGI(TAG, "🔌 WebSocket connecting to HowdyTTS server...");
+            // ui_manager_update_status("Connecting to server...");
             break;
             
         case WS_CLIENT_STATE_CONNECTED:
             ESP_LOGI(TAG, "🚀 WebSocket connected successfully!");
             connected_servers_count = 1;
+            // ui_manager_set_state(UI_STATE_IDLE);
+            // ui_manager_update_status("Ready to speak");
             break;
             
         case WS_CLIENT_STATE_DISCONNECTED:
             ESP_LOGI(TAG, "🔌 WebSocket disconnected from server");
             connected_servers_count = 0;
+            // ui_manager_set_state(UI_STATE_ERROR);
+            // ui_manager_update_status("Server disconnected");
             break;
             
         case WS_CLIENT_STATE_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket connection error");
             connected_servers_count = 0;
+            // ui_manager_set_state(UI_STATE_ERROR);
+            // ui_manager_update_status("Connection error");
             break;
             
         default:
@@ -480,7 +522,7 @@ static void lvgl_tick_task(void *pvParameters)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "=== HowdyScreen ESP32-P4 Phase 3B Starting ===");
+    ESP_LOGI(TAG, "=== HowdyScreen ESP32-P4 Phase 3B Display Test ===");
     
     // Print system information
     esp_chip_info_t chip_info;
@@ -489,14 +531,24 @@ void app_main(void)
              chip_info.cores, chip_info.revision / 100, chip_info.revision % 100);
     ESP_LOGI(TAG, "Memory: %lu bytes free heap", esp_get_free_heap_size());
     ESP_LOGI(TAG, "Board: ESP32-P4-WIFI6-Touch-LCD-3.4C (800x800 round display)");
-    ESP_LOGI(TAG, "Target: WebSocket real-time voice communication with HowdyTTS");
+    ESP_LOGI(TAG, "Target: Display initialization test");
     
     // Initialize core system
     system_init();
     
-    // Load WiFi credentials from file
-    ESP_LOGI(TAG, "Loading WiFi credentials from credentials.conf");
-    esp_err_t ret = load_wifi_credentials();
+    // Create a simple LVGL screen to test display
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "HowdyTTS Display Test\nTouch screen working!");
+    lv_obj_center(label);
+    
+    ESP_LOGI(TAG, "🚀 Display test complete - you should see text on screen!");
+    
+    // Simple monitoring loop
+    while (1) {
+        ESP_LOGI(TAG, "Display test running... Free heap: %lu bytes", esp_get_free_heap_size());
+        vTaskDelay(pdMS_TO_TICKS(5000));  // Print status every 5 seconds
+    }
+}
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to load WiFi credentials: %s", esp_err_to_name(ret));
         return;

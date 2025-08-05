@@ -3,7 +3,7 @@
 #include "esp_timer.h"
 #include <string.h>
 #include <math.h>
-#include "images/howdy_images.h"
+#include "howdy_images.h"
 
 static const char *TAG = "UIManager";
 
@@ -19,6 +19,14 @@ static bool s_initialized = false;
 #define HOWDY_COLOR_BACKGROUND  lv_color_hex(0x202124)  // Dark background
 #define HOWDY_COLOR_SURFACE     lv_color_hex(0x303134)  // Card background
 #define HOWDY_COLOR_ON_SURFACE  lv_color_hex(0xe8eaed)  // Text on surface
+
+// Dynamic background colors for different states
+#define HOWDY_BG_INIT          lv_color_hex(0x1a1a2e)  // Deep blue-purple
+#define HOWDY_BG_IDLE          lv_color_hex(0x16213e)  // Calm blue-grey
+#define HOWDY_BG_LISTENING     lv_color_hex(0x0f3460)  // Active blue
+#define HOWDY_BG_PROCESSING    lv_color_hex(0x533a7b)  // Purple thinking
+#define HOWDY_BG_SPEAKING      lv_color_hex(0x1e4d72)  // Teal speaking
+#define HOWDY_BG_ERROR         lv_color_hex(0x4a1c1c)  // Dark red
 
 // Button callback for center character/mute button
 static void center_button_event_cb(lv_event_t * e)
@@ -61,67 +69,68 @@ static void create_main_screen(void)
     lv_obj_set_style_border_width(main_container, 0, 0);
     lv_obj_set_style_pad_all(main_container, 0, 0);
     
-    // Title label
+    // Title label - larger font
     lv_obj_t *title_label = lv_label_create(main_container);
     lv_label_set_text(title_label, "HowdyTTS");
     lv_obj_set_style_text_color(title_label, HOWDY_COLOR_ON_SURFACE, 0);
-    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 40);
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_24, 0);  // Increased from 14 to 24
+    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 50);
     
-    // Audio level arc (circular meter)
+    // Audio level arc (circular meter) - larger and thicker
     s_ui_manager.level_arc = lv_arc_create(main_container);
-    lv_obj_set_size(s_ui_manager.level_arc, 300, 300);
+    lv_obj_set_size(s_ui_manager.level_arc, 450, 450);  // Increased from 300 to 450
     lv_obj_center(s_ui_manager.level_arc);
-    lv_obj_set_style_arc_width(s_ui_manager.level_arc, 12, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(s_ui_manager.level_arc, 20, LV_PART_MAIN);      // Increased from 12 to 20
     lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SURFACE, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(s_ui_manager.level_arc, 12, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(s_ui_manager.level_arc, 20, LV_PART_INDICATOR); // Increased from 12 to 20
     lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_PRIMARY, LV_PART_INDICATOR);
     lv_arc_set_range(s_ui_manager.level_arc, 0, 100);
     lv_arc_set_value(s_ui_manager.level_arc, 0);
     lv_obj_remove_style(s_ui_manager.level_arc, NULL, LV_PART_KNOB);
     
-    // Howdy character image (center of circular display)
+    // Howdy character image (center of circular display) - much larger
     s_ui_manager.howdy_character = lv_img_create(main_container);
     lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);
-    lv_obj_set_size(s_ui_manager.howdy_character, 128, 128);
+    lv_obj_set_size(s_ui_manager.howdy_character, 200, 200);  // Increased from 128 to 200
     lv_obj_center(s_ui_manager.howdy_character);
     
-    // Center button (transparent overlay for touch interaction)
+    // Center button (transparent overlay for touch interaction) - larger touch area
     s_ui_manager.center_button = lv_btn_create(main_container);
-    lv_obj_set_size(s_ui_manager.center_button, 140, 140);
+    lv_obj_set_size(s_ui_manager.center_button, 220, 220);  // Increased from 140 to 220
     lv_obj_center(s_ui_manager.center_button);
     lv_obj_set_style_bg_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_set_style_shadow_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_add_event_cb(s_ui_manager.center_button, center_button_event_cb, LV_EVENT_ALL, NULL);
     
-    // Microphone icon (floating over character when needed)
+    // Microphone icon (floating over character when needed) - larger font
     s_ui_manager.mic_icon = lv_label_create(main_container);
     lv_label_set_text(s_ui_manager.mic_icon, "");  // Initially hidden
     lv_obj_set_style_text_color(s_ui_manager.mic_icon, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_ui_manager.mic_icon, &lv_font_montserrat_14, 0);
-    lv_obj_align(s_ui_manager.mic_icon, LV_ALIGN_CENTER, 0, 80);  // Below character
+    lv_obj_set_style_text_font(s_ui_manager.mic_icon, &lv_font_montserrat_24, 0);  // Use available font size
+    lv_obj_align(s_ui_manager.mic_icon, LV_ALIGN_CENTER, 0, 120);  // Moved further below character
     
-    // Status label
+    // Status label - larger font and centered text
     s_ui_manager.status_label = lv_label_create(main_container);
     lv_label_set_text(s_ui_manager.status_label, "Initializing...");
     lv_obj_set_style_text_color(s_ui_manager.status_label, HOWDY_COLOR_ON_SURFACE, 0);
-    lv_obj_set_style_text_font(s_ui_manager.status_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(s_ui_manager.status_label, LV_ALIGN_BOTTOM_MID, 0, -120);
+    lv_obj_set_style_text_font(s_ui_manager.status_label, &lv_font_montserrat_24, 0);  // Use available font size
+    lv_obj_set_style_text_align(s_ui_manager.status_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_ui_manager.status_label, LV_ALIGN_BOTTOM_MID, 0, -150);  // Moved up more
     
-    // WiFi status label (bottom left)
+    // WiFi status label (bottom left) - larger font
     s_ui_manager.wifi_label = lv_label_create(main_container);
     lv_label_set_text(s_ui_manager.wifi_label, LV_SYMBOL_WIFI " Connecting...");
     lv_obj_set_style_text_color(s_ui_manager.wifi_label, HOWDY_COLOR_ACCENT, 0);
-    lv_obj_set_style_text_font(s_ui_manager.wifi_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(s_ui_manager.wifi_label, LV_ALIGN_BOTTOM_LEFT, 20, -20);
+    lv_obj_set_style_text_font(s_ui_manager.wifi_label, &lv_font_montserrat_16, 0);  // Use available font size
+    lv_obj_align(s_ui_manager.wifi_label, LV_ALIGN_BOTTOM_LEFT, 20, -30);  // Moved up slightly
     
-    // Time/system status (bottom right)
+    // Time/system status (bottom right) - larger font
     lv_obj_t *system_label = lv_label_create(main_container);
     lv_label_set_text(system_label, "HowdyScreen v1.0");
     lv_obj_set_style_text_color(system_label, HOWDY_COLOR_ON_SURFACE, 0);
-    lv_obj_set_style_text_font(system_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(system_label, LV_ALIGN_BOTTOM_RIGHT, -20, -20);
+    lv_obj_set_style_text_font(system_label, &lv_font_montserrat_16, 0);  // Use available font size
+    lv_obj_align(system_label, LV_ALIGN_BOTTOM_RIGHT, -20, -30);  // Moved up slightly
     
     ESP_LOGI(TAG, "Main screen created successfully");
 }
@@ -138,6 +147,8 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SURFACE, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Looking back/starting up
             lv_label_set_text(s_ui_manager.mic_icon, "");  // Hide icon during init
+            // Dynamic background: Deep blue-purple for initialization
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_INIT, 0);
             break;
             
         case UI_STATE_IDLE:
@@ -145,6 +156,8 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_PRIMARY, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);  // Friendly greeting pose
             lv_label_set_text(s_ui_manager.mic_icon, s_ui_manager.muted ? "🔇" : "🎤");
+            // Dynamic background: Calm blue-grey for idle/ready state
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_IDLE, 0);
             break;
             
         case UI_STATE_LISTENING:
@@ -152,6 +165,8 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyleft);  // Listening pose
             lv_label_set_text(s_ui_manager.mic_icon, "🎧");
+            // Dynamic background: Active blue for listening state
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_LISTENING, 0);
             break;
             
         case UI_STATE_PROCESSING:
@@ -159,6 +174,8 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ACCENT, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdymidget);  // Thinking pose
             lv_label_set_text(s_ui_manager.mic_icon, "🤔");
+            // Dynamic background: Purple for thinking/processing state
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_PROCESSING, 0);
             break;
             
         case UI_STATE_SPEAKING:
@@ -166,6 +183,8 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyright2);  // Speaking pose
             lv_label_set_text(s_ui_manager.mic_icon, "🔊");
+            // Dynamic background: Teal for speaking state
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_SPEAKING, 0);
             break;
             
         case UI_STATE_ERROR:
@@ -173,11 +192,13 @@ static void update_ui_for_state(ui_state_t state)
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ERROR, LV_PART_INDICATOR);
             lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Confused/error pose
             lv_label_set_text(s_ui_manager.mic_icon, "⚠️");
+            // Dynamic background: Dark red for error state
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_ERROR, 0);
             break;
     }
     
     s_ui_manager.current_state = state;
-    ESP_LOGI(TAG, "UI state updated to: %d", state);
+    ESP_LOGI(TAG, "UI state updated to: %d with dynamic background", state);
 }
 
 esp_err_t ui_manager_init(void)

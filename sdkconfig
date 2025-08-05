@@ -747,9 +747,23 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 # HowdyScreen Configuration
 #
-CONFIG_HOWDY_WIFI_SSID="YourWiFiNetwork"
-CONFIG_HOWDY_WIFI_PASSWORD="YourWiFiPassword"
+
+#
+# WiFi Settings
+#
+CONFIG_HOWDY_WIFI_SSID="J&Awifi"
+CONFIG_HOWDY_WIFI_PASSWORD="Jojoba21"
+CONFIG_HOWDY_WIFI_MAX_RETRY=5
+# end of WiFi Settings
+
+#
+# HowdyTTS Server Settings
+#
 CONFIG_HOWDY_SERVER_IP="192.168.1.100"
+CONFIG_HOWDY_SERVER_PORT=8080
+CONFIG_HOWDY_AUTO_DISCOVER=y
+# end of HowdyTTS Server Settings
+
 CONFIG_HOWDY_AUDIO_TASK_PRIORITY=23
 CONFIG_HOWDY_USE_ESP_WIFI_REMOTE=y
 
@@ -766,8 +780,20 @@ CONFIG_HOWDY_SLAVE_RESET_GPIO=47
 # end of SDIO Pin Configuration
 
 CONFIG_WEBSOCKET_BUFFER_SIZE=2048
+
+#
+# Network Discovery
+#
 CONFIG_MDNS_ENABLED=y
 CONFIG_MDNS_HOSTNAME="howdyscreen"
+# end of Network Discovery
+
+#
+# Display Settings
+#
+CONFIG_DISPLAY_BRIGHTNESS=80
+# CONFIG_DISPLAY_DEMO_MODE is not set
+# end of Display Settings
 # end of HowdyScreen Configuration
 
 #
@@ -3116,6 +3142,36 @@ CONFIG_LV_BUILD_EXAMPLES=y
 # CONFIG_LV_USE_DEMO_MUSIC is not set
 # end of Demos
 # end of LVGL configuration
+
+#
+# Board Support Package(ESP32-P4)
+#
+
+#
+# I2C
+#
+# end of I2C
+
+#
+# I2S
+#
+# end of I2S
+
+#
+# uSD card - Virtual File System
+#
+# end of uSD card - Virtual File System
+
+#
+# SPIFFS - Virtual File System
+#
+# end of SPIFFS - Virtual File System
+
+#
+# Display
+#
+# end of Display
+# end of Board Support Package(ESP32-P4)
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set

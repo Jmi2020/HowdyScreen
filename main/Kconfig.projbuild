@@ -1,21 +1,50 @@
 menu "HowdyScreen Configuration"
-    config HOWDY_WIFI_SSID
-        string "WiFi SSID"
-        default "YourWiFiNetwork"
-        help
-            WiFi network name to connect to. Set via menuconfig or credentials.conf
 
-    config HOWDY_WIFI_PASSWORD
-        string "WiFi Password"  
-        default "YourWiFiPassword"
-        help
-            WiFi network password. Set via menuconfig or credentials.conf
+    menu "WiFi Settings"
+        config HOWDY_WIFI_SSID
+            string "WiFi SSID"
+            default "YourWiFiNetwork"
+            help
+                WiFi network name (SSID) to connect to.
+                Configure this with your actual WiFi network name.
 
-    config HOWDY_SERVER_IP
-        string "HowdyTTS Server IP"
-        default "192.168.1.100"
-        help
-            IP address of your Mac Studio running HowdyTTS
+        config HOWDY_WIFI_PASSWORD
+            string "WiFi Password"  
+            default "YourWiFiPassword"
+            help
+                WiFi network password (WPA/WPA2).
+                Leave blank for open networks.
+                
+        config HOWDY_WIFI_MAX_RETRY
+            int "Maximum WiFi connection retries"
+            default 5
+            range 1 10
+            help
+                Maximum number of attempts to connect to WiFi before giving up.
+    endmenu
+
+    menu "HowdyTTS Server Settings"
+
+        config HOWDY_SERVER_IP
+            string "HowdyTTS Server IP/Hostname"
+            default "192.168.1.100"
+            help
+                IP address or hostname of your computer running HowdyTTS.
+                Can use mDNS name like "howdytts.local" if mDNS is enabled.
+                
+        config HOWDY_SERVER_PORT
+            int "HowdyTTS Server Port"
+            default 8080
+            range 1 65535
+            help
+                Port number for HowdyTTS WebSocket server.
+                
+        config HOWDY_AUTO_DISCOVER
+            bool "Enable automatic server discovery"
+            default y
+            help
+                Use mDNS to automatically discover HowdyTTS servers on the network.
+    endmenu
     
     config HOWDY_AUDIO_TASK_PRIORITY
         int "Audio Task Priority"
@@ -82,16 +111,36 @@ menu "HowdyScreen Configuration"
         help
             Buffer size for WebSocket communication
 
-    config MDNS_ENABLED
-        bool "Enable mDNS Service"
-        default y
-        help
-            Enable mDNS for service discovery
+    menu "Network Discovery"
+        config MDNS_ENABLED
+            bool "Enable mDNS Service"
+            default y
+            help
+                Enable mDNS for automatic service discovery.
+                Required for auto-discovering HowdyTTS servers.
 
-    config MDNS_HOSTNAME
-        string "mDNS Hostname"
-        default "howdyscreen"
-        depends on MDNS_ENABLED
-        help
-            Hostname for mDNS service advertisement
+        config MDNS_HOSTNAME
+            string "Device mDNS Hostname"
+            default "howdyscreen"
+            depends on MDNS_ENABLED
+            help
+                Hostname for this device in mDNS service advertisement.
+                Will be accessible as <hostname>.local on the network.
+    endmenu
+    
+    menu "Display Settings"
+        config DISPLAY_BRIGHTNESS
+            int "Default Display Brightness (%)"
+            default 80
+            range 10 100
+            help
+                Default brightness level for the display (10-100%).
+                
+        config DISPLAY_DEMO_MODE
+            bool "Enable Demo Mode"
+            default n
+            help
+                Enable demo mode to cycle through voice assistant states.
+                Useful for testing without network connection.
+    endmenu
 endmenu
