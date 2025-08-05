@@ -398,11 +398,12 @@ static esp_err_t parse_mdns_result(mdns_result_t *result, howdytts_server_info_t
             // Try to resolve hostname if IP is invalid
             ESP_LOGW(TAG, "Invalid IP address 0.0.0.0 for %s, attempting hostname resolution", server_info->hostname);
             
-            // For local testing, use localhost
+            // For local testing, use gateway IP (typically the host computer)
             if (strstr(server_info->hostname, "esp32-test-server") != NULL || 
                 strstr(server_info->hostname, "test") != NULL) {
-                strncpy(server_info->ip_addr, "127.0.0.1", sizeof(server_info->ip_addr) - 1);
-                ESP_LOGI(TAG, "Using localhost IP for test server");
+                // Use computer's IP address for local test server
+                strncpy(server_info->ip_addr, "192.168.86.39", sizeof(server_info->ip_addr) - 1);
+                ESP_LOGI(TAG, "Using computer IP %s for test server", server_info->ip_addr);
             } else {
                 // For production, this would need proper hostname resolution
                 ESP_LOGW(TAG, "Cannot resolve hostname %s", server_info->hostname);

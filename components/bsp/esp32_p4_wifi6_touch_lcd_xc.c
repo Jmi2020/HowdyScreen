@@ -959,9 +959,9 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
     tp_io_config.scl_speed_hz = CONFIG_BSP_I2C_CLK_SPEED_HZ;
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(i2c_handle, &tp_io_config, &tp_io_handle), TAG, "");
     
-    // Retry GT911 initialization up to 3 times to handle I2C communication issues
+    // Retry GT911 initialization up to 5 times with longer delays to handle I2C communication issues
     esp_err_t ret;
-    int retry_count = 3;
+    int retry_count = 5;
     for (int i = 0; i < retry_count; i++) {
         ret = esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, ret_touch);
         if (ret == ESP_OK) {
@@ -973,8 +973,8 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
                  i + 1, retry_count, esp_err_to_name(ret));
         
         if (i < retry_count - 1) {
-            // Wait before retry
-            vTaskDelay(pdMS_TO_TICKS(100));
+            // Wait longer before retry - touch controllers may need more time
+            vTaskDelay(pdMS_TO_TICKS(200 + (i * 100)));  // 200ms, 300ms, 400ms, 500ms delays
         }
     }
     
@@ -1048,8 +1048,16 @@ static lv_display_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
 static lv_indev_t *bsp_display_indev_init(lv_display_t *disp)
 {
     esp_lcd_touch_handle_t tp;
-    BSP_ERROR_CHECK_RETURN_NULL(bsp_touch_new(NULL, &tp));
-    assert(tp);
+    esp_err_t ret = bsp_touch_new(NULL, &tp);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Touch controller initialization failed, continuing without touch support");
+        return NULL;  // Return NULL but don't crash - touch is optional
+    }
+    
+    if (!tp) {
+        ESP_LOGW(TAG, "Touch controller handle is NULL, continuing without touch support");
+        return NULL;
+    }
 
     /* Add touch input (for selected screen) */
     const lvgl_port_touch_cfg_t touch_cfg = {

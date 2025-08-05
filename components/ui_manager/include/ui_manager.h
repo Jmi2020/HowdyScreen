@@ -23,7 +23,7 @@ typedef struct {
     lv_obj_t *wifi_label;       // Network status
     lv_obj_t *level_arc;        // Circular audio level meter
     lv_obj_t *center_button;    // Mute/unmute control
-    lv_obj_t *howdy_gif;        // Processing animation
+    lv_obj_t *howdy_character;  // Howdy character image for state visualization
     lv_obj_t *mic_icon;         // Microphone icon
     ui_state_t current_state;
     bool muted;
@@ -90,6 +90,39 @@ ui_state_t ui_manager_get_state(void);
  * @return true if muted
  */
 bool ui_manager_is_muted(void);
+
+/**
+ * @brief Show voice assistant state with enhanced feedback
+ * This function provides rich visual feedback for the smart audio interface
+ * 
+ * @param state_name State name (e.g., "LISTENING", "PROCESSING", "SPEAKING")
+ * @param status_text Detailed status text
+ * @param audio_level Current audio level (0.0 to 1.0)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_show_voice_assistant_state(const char *state_name, 
+                                               const char *status_text, 
+                                               float audio_level);
+
+/**
+ * @brief Start listening animation (pulsing effect)
+ */
+esp_err_t ui_manager_start_listening_animation(void);
+
+/**
+ * @brief Stop listening animation
+ */
+esp_err_t ui_manager_stop_listening_animation(void);
+
+/**
+ * @brief Start processing animation (spinner)
+ */
+esp_err_t ui_manager_start_processing_animation(void);
+
+/**
+ * @brief Stop processing animation
+ */
+esp_err_t ui_manager_stop_processing_animation(void);
 
 #ifdef __cplusplus
 }

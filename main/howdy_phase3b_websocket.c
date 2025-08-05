@@ -48,6 +48,8 @@ static void wifi_connection_callback(bool connected, const char *info);
 static void howdytts_server_discovered_callback(const howdytts_server_info_t *server_info);
 static void howdytts_server_health_callback(const howdytts_server_info_t *server, 
                                            const howdytts_server_health_t *health);
+static void websocket_event_callback(ws_client_state_t state, ws_message_type_t msg_type, 
+                                   const uint8_t *data, size_t len);
 static esp_err_t start_service_discovery(void);
 static esp_err_t start_http_client(void);
 static esp_err_t start_websocket_client(void);
@@ -183,7 +185,7 @@ static void howdytts_server_discovered_callback(const howdytts_server_info_t *se
                      "ws://%s:%d/howdytts", server_info->ip_addr, server_info->port);
             
             // Initialize WebSocket client with event callback
-            ret = ws_client_init(&ws_config, NULL);  // NULL callback for now
+            ret = ws_client_init(&ws_config, websocket_event_callback);
             if (ret == ESP_OK) {
                 ret = ws_client_start();
                 if (ret == ESP_OK) {
@@ -217,6 +219,56 @@ static void howdytts_server_health_callback(const howdytts_server_info_t *server
         healthy_servers_count++;
     } else {
         ESP_LOGW(TAG, "💔 Server Unhealthy: %s (%s)", server->hostname, health->status);
+    }
+}
+
+static void websocket_event_callback(ws_client_state_t state, ws_message_type_t msg_type, 
+                                   const uint8_t *data, size_t len)
+{
+    switch (state) {
+        case WS_CLIENT_STATE_CONNECTING:
+            ESP_LOGI(TAG, "🔌 WebSocket connecting to HowdyTTS server...");
+            break;
+            
+        case WS_CLIENT_STATE_CONNECTED:
+            ESP_LOGI(TAG, "🚀 WebSocket connected successfully!");
+            connected_servers_count = 1;
+            break;
+            
+        case WS_CLIENT_STATE_DISCONNECTED:
+            ESP_LOGI(TAG, "🔌 WebSocket disconnected from server");
+            connected_servers_count = 0;
+            break;
+            
+        case WS_CLIENT_STATE_ERROR:
+            ESP_LOGE(TAG, "❌ WebSocket connection error");
+            connected_servers_count = 0;
+            break;
+            
+        default:
+            break;
+    }
+    
+    // Handle different message types
+    switch (msg_type) {
+        case WS_MSG_TYPE_CONTROL:
+            if (data && len > 0) {
+                ESP_LOGI(TAG, "📨 WebSocket control message: %.*s", (int)len, data);
+            }
+            break;
+            
+        case WS_MSG_TYPE_TTS_RESPONSE:
+            ESP_LOGI(TAG, "🔊 Received TTS audio response: %zu bytes", len);
+            // TODO: Pass to audio pipeline for playback
+            break;
+            
+        case WS_MSG_TYPE_STATUS:
+            ESP_LOGD(TAG, "📊 WebSocket status update");
+            break;
+            
+        default:
+            ESP_LOGD(TAG, "📥 WebSocket message type: %d (%zu bytes)", msg_type, len);
+            break;
     }
 }
 

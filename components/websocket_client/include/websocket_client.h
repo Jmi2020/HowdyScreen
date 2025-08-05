@@ -8,6 +8,9 @@
 extern "C" {
 #endif
 
+// Forward declaration for audio interface integration
+typedef struct audio_interface_status_t audio_interface_status_t;
+
 // WebSocket client state
 typedef enum {
     WS_CLIENT_STATE_DISCONNECTED = 0,
@@ -127,6 +130,29 @@ esp_err_t ws_client_ping(void);
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t ws_client_get_stats(uint32_t *bytes_sent, uint32_t *bytes_received, uint32_t *reconnect_count);
+
+/**
+ * @brief Set audio interface callback for bidirectional audio streaming
+ * This enables the WebSocket client to:
+ * - Receive captured audio from the audio interface coordinator
+ * - Send TTS audio to the audio interface coordinator for playback
+ * 
+ * @param audio_callback Function to call when TTS audio is received
+ * @param user_data User data for the callback
+ * @return esp_err_t ESP_OK on success
+ */
+typedef esp_err_t (*ws_audio_callback_t)(const uint8_t *tts_audio, size_t audio_len, void *user_data);
+esp_err_t ws_client_set_audio_callback(ws_audio_callback_t audio_callback, void *user_data);
+
+/**
+ * @brief Stream captured audio to HowdyTTS server (called by audio interface)
+ * This function is called by the audio interface coordinator when audio is captured
+ * 
+ * @param captured_audio PCM audio data from microphone
+ * @param audio_len Length of audio data in bytes
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ws_client_stream_captured_audio(const uint8_t *captured_audio, size_t audio_len);
 
 #ifdef __cplusplus
 }

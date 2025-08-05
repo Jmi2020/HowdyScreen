@@ -21,6 +21,10 @@ static struct {
     QueueHandle_t send_queue;
     TaskHandle_t send_task_handle;
     
+    // Audio interface integration
+    ws_audio_callback_t audio_callback;
+    void *audio_user_data;
+    
     // Statistics
     uint32_t bytes_sent;
     uint32_t bytes_received;
@@ -126,7 +130,7 @@ esp_err_t ws_client_init(const ws_client_config_t *config, ws_event_callback_t e
     BaseType_t task_ret = xTaskCreatePinnedToCore(
         send_task,
         "ws_send",
-        4096,
+        8192,  // Increased from 4096 to prevent stack overflow
         NULL,
         5,  // Medium priority
         &s_ws_client.send_task_handle,
@@ -254,7 +258,7 @@ esp_err_t ws_client_ping(void)
         return ESP_ERR_INVALID_STATE;
     }
 
-    char ping_message[64];
+    char ping_message[128];  // Increased from 64 to 128 bytes for larger ping messages
     esp_err_t ret = howdytts_create_ping_message(ping_message, sizeof(ping_message));
     if (ret != ESP_OK) {
         return ret;
@@ -525,13 +529,19 @@ esp_err_t ws_client_handle_binary_response(const uint8_t *data, size_t length)
         return ESP_ERR_INVALID_ARG;
     }
     
-    ESP_LOGI(TAG, "Processing binary audio response: %zu bytes", length);
+    ESP_LOGI(TAG, "Processing binary TTS audio response: %zu bytes", length);
     
-    // Handle received TTS audio data
-    // This would typically be passed to the audio pipeline for playback
-    // Similar to the Arduino speaker_play function
+    // Send TTS audio to audio interface coordinator for playback
+    if (s_ws_client.audio_callback) {
+        esp_err_t ret = s_ws_client.audio_callback(data, length, s_ws_client.audio_user_data);
+        if (ret != ESP_OK) {
+            ESP_LOGW(TAG, "Audio interface callback failed: %s", esp_err_to_name(ret));
+        }
+    } else {
+        ESP_LOGW(TAG, "No audio callback registered - TTS audio dropped");
+    }
     
-    // For now, just notify the application callback
+    // Also notify the main application callback
     if (s_ws_client.event_callback) {
         s_ws_client.event_callback(s_ws_client.state, WS_MSG_TYPE_TTS_RESPONSE, data, length);
     }
@@ -543,4 +553,48 @@ bool ws_client_is_audio_ready(void)
 {
     return (s_ws_client.state == WS_CLIENT_STATE_CONNECTED && 
             s_ws_client.client != NULL);
+}
+
+// Audio Interface Integration Functions
+
+esp_err_t ws_client_set_audio_callback(ws_audio_callback_t audio_callback, void *user_data)
+{
+    if (!audio_callback) {
+        ESP_LOGE(TAG, "Audio callback cannot be NULL");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    s_ws_client.audio_callback = audio_callback;
+    s_ws_client.audio_user_data = user_data;
+    
+    ESP_LOGI(TAG, "Audio interface callback registered for bidirectional streaming");
+    return ESP_OK;
+}
+
+esp_err_t ws_client_stream_captured_audio(const uint8_t *captured_audio, size_t audio_len)
+{
+    if (!captured_audio || audio_len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    if (s_ws_client.state != WS_CLIENT_STATE_CONNECTED) {
+        ESP_LOGD(TAG, "WebSocket not connected - dropping audio chunk");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    // Send captured audio as binary data to HowdyTTS server
+    int ret = esp_websocket_client_send_bin(s_ws_client.client, 
+                                           (const char*)captured_audio, 
+                                           audio_len, 
+                                           pdMS_TO_TICKS(100));  // Non-blocking with timeout
+    
+    if (ret < 0) {
+        ESP_LOGW(TAG, "Failed to stream captured audio to server");
+        return ESP_FAIL;
+    }
+    
+    s_ws_client.bytes_sent += audio_len;
+    ESP_LOGD(TAG, "Streamed captured audio: %zu bytes to HowdyTTS server", audio_len);
+    
+    return ESP_OK;
 }

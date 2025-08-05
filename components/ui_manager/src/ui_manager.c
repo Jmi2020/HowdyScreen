@@ -2,6 +2,8 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include <string.h>
+#include <math.h>
+#include "images/howdy_images.h"
 
 static const char *TAG = "UIManager";
 
@@ -18,29 +20,28 @@ static bool s_initialized = false;
 #define HOWDY_COLOR_SURFACE     lv_color_hex(0x303134)  // Card background
 #define HOWDY_COLOR_ON_SURFACE  lv_color_hex(0xe8eaed)  // Text on surface
 
-// Button callback for center mute button
+// Button callback for center character/mute button
 static void center_button_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     
     if (code == LV_EVENT_CLICKED) {
-        ESP_LOGI(TAG, "Center button clicked - toggling mute");
+        ESP_LOGI(TAG, "Howdy character clicked - toggling mute");
         s_ui_manager.muted = !s_ui_manager.muted;
         
-        // Update button appearance
-        if (s_ui_manager.muted) {
-            lv_obj_set_style_bg_color(s_ui_manager.center_button, HOWDY_COLOR_ERROR, 0);
-            lv_label_set_text(lv_obj_get_child(s_ui_manager.center_button, 0), LV_SYMBOL_VOLUME_MID);
-        } else {
-            lv_obj_set_style_bg_color(s_ui_manager.center_button, HOWDY_COLOR_PRIMARY, 0);
-            lv_label_set_text(lv_obj_get_child(s_ui_manager.center_button, 0), LV_SYMBOL_AUDIO);
+        // Update mic icon based on mute state
+        if (s_ui_manager.current_state == UI_STATE_IDLE) {
+            lv_label_set_text(s_ui_manager.mic_icon, s_ui_manager.muted ? "🔇" : "🎤");
         }
+        
+        ESP_LOGI(TAG, "Audio %s", s_ui_manager.muted ? "muted" : "unmuted");
+        
     } else if (code == LV_EVENT_PRESSING) {
-        // Visual feedback while pressing
-        lv_obj_set_style_transform_zoom(s_ui_manager.center_button, 240, 0);
+        // Visual feedback - scale the character image slightly
+        lv_obj_set_style_transform_zoom(s_ui_manager.howdy_character, 240, 0);
     } else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
-        // Return to normal size
-        lv_obj_set_style_transform_zoom(s_ui_manager.center_button, 256, 0);
+        // Return character to normal size
+        lv_obj_set_style_transform_zoom(s_ui_manager.howdy_character, 256, 0);
     }
 }
 
@@ -79,20 +80,27 @@ static void create_main_screen(void)
     lv_arc_set_value(s_ui_manager.level_arc, 0);
     lv_obj_remove_style(s_ui_manager.level_arc, NULL, LV_PART_KNOB);
     
-    // Center button (mute/unmute)
+    // Howdy character image (center of circular display)
+    s_ui_manager.howdy_character = lv_img_create(main_container);
+    lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);
+    lv_obj_set_size(s_ui_manager.howdy_character, 128, 128);
+    lv_obj_center(s_ui_manager.howdy_character);
+    
+    // Center button (transparent overlay for touch interaction)
     s_ui_manager.center_button = lv_btn_create(main_container);
-    lv_obj_set_size(s_ui_manager.center_button, 120, 120);
+    lv_obj_set_size(s_ui_manager.center_button, 140, 140);
     lv_obj_center(s_ui_manager.center_button);
-    lv_obj_set_style_bg_color(s_ui_manager.center_button, HOWDY_COLOR_PRIMARY, 0);
-    lv_obj_set_style_radius(s_ui_manager.center_button, 60, 0);
+    lv_obj_set_style_bg_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_shadow_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_add_event_cb(s_ui_manager.center_button, center_button_event_cb, LV_EVENT_ALL, NULL);
     
-    // Microphone icon in center button
-    s_ui_manager.mic_icon = lv_label_create(s_ui_manager.center_button);
-    lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_AUDIO);
+    // Microphone icon (floating over character when needed)
+    s_ui_manager.mic_icon = lv_label_create(main_container);
+    lv_label_set_text(s_ui_manager.mic_icon, "");  // Initially hidden
     lv_obj_set_style_text_color(s_ui_manager.mic_icon, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_ui_manager.mic_icon, &lv_font_montserrat_14, 0);
-    lv_obj_center(s_ui_manager.mic_icon);
+    lv_obj_align(s_ui_manager.mic_icon, LV_ALIGN_CENTER, 0, 80);  // Below character
     
     // Status label
     s_ui_manager.status_label = lv_label_create(main_container);
@@ -128,37 +136,43 @@ static void update_ui_for_state(ui_state_t state)
         case UI_STATE_INIT:
             lv_label_set_text(s_ui_manager.status_label, "Initializing...");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SURFACE, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_SETTINGS);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Looking back/starting up
+            lv_label_set_text(s_ui_manager.mic_icon, "");  // Hide icon during init
             break;
             
         case UI_STATE_IDLE:
             lv_label_set_text(s_ui_manager.status_label, "Tap to speak");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_PRIMARY, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, s_ui_manager.muted ? LV_SYMBOL_VOLUME_MID : LV_SYMBOL_AUDIO);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);  // Friendly greeting pose
+            lv_label_set_text(s_ui_manager.mic_icon, s_ui_manager.muted ? "🔇" : "🎤");
             break;
             
         case UI_STATE_LISTENING:
             lv_label_set_text(s_ui_manager.status_label, "Listening...");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_AUDIO);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyleft);  // Listening pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🎧");
             break;
             
         case UI_STATE_PROCESSING:
             lv_label_set_text(s_ui_manager.status_label, "Processing...");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ACCENT, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_REFRESH);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdymidget);  // Thinking pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🤔");
             break;
             
         case UI_STATE_SPEAKING:
             lv_label_set_text(s_ui_manager.status_label, "Speaking...");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_VOLUME_MAX);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyright2);  // Speaking pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🔊");
             break;
             
         case UI_STATE_ERROR:
             lv_label_set_text(s_ui_manager.status_label, "Error - Check connection");
             lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ERROR, LV_PART_INDICATOR);
-            lv_label_set_text(s_ui_manager.mic_icon, LV_SYMBOL_WARNING);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Confused/error pose
+            lv_label_set_text(s_ui_manager.mic_icon, "⚠️");
             break;
     }
     
@@ -283,4 +297,171 @@ ui_state_t ui_manager_get_state(void)
 bool ui_manager_is_muted(void)
 {
     return s_ui_manager.muted;
+}
+
+// Animation timers
+static lv_timer_t *s_listening_animation_timer = NULL;
+static lv_timer_t *s_processing_animation_timer = NULL;
+static uint16_t s_animation_step = 0;
+
+/**
+ * @brief Listening animation callback (pulsing effect)
+ */
+static void listening_animation_cb(lv_timer_t *timer)
+{
+    if (!s_initialized || !s_ui_manager.center_button) {
+        return;
+    }
+    
+    // Create pulsing effect by scaling the center button
+    s_animation_step = (s_animation_step + 10) % 360;
+    float scale_factor = 1.0f + 0.1f * sinf(s_animation_step * 3.14159f / 180.0f);
+    uint16_t scale = (uint16_t)(256 * scale_factor); // LV_IMG_ZOOM_NONE = 256
+    
+    lv_obj_set_style_transform_zoom(s_ui_manager.center_button, scale, 0);
+}
+
+/**
+ * @brief Processing animation callback (spinner)
+ */
+static void processing_animation_cb(lv_timer_t *timer)
+{
+    if (!s_initialized || !s_ui_manager.level_arc) {
+        return;
+    }
+    
+    // Rotate the arc to create spinner effect
+    s_animation_step = (s_animation_step + 10) % 360;
+    lv_obj_set_style_transform_angle(s_ui_manager.level_arc, s_animation_step * 10, 0);
+}
+
+esp_err_t ui_manager_show_voice_assistant_state(const char *state_name, 
+                                               const char *status_text, 
+                                               float audio_level)
+{
+    if (!s_initialized || !state_name || !status_text) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    ESP_LOGI(TAG, "Voice assistant state: %s - %s (level: %.2f)", state_name, status_text, audio_level);
+    
+    // Update status text
+    lv_label_set_text(s_ui_manager.status_label, status_text);
+    
+    // Update audio level (convert 0.0-1.0 to 0-100)
+    int level_percent = (int)(audio_level * 100);
+    ui_manager_update_audio_level(level_percent);
+    
+    // Update UI based on HowdyTTS server states (exact match)
+    if (strcmp(state_name, "waiting") == 0 || strcmp(state_name, "READY") == 0) {
+        ui_manager_set_state(UI_STATE_IDLE);
+        ui_manager_stop_listening_animation();
+        ui_manager_stop_processing_animation();
+        
+    } else if (strcmp(state_name, "listening") == 0 || strcmp(state_name, "LISTENING") == 0) {
+        ui_manager_set_state(UI_STATE_LISTENING);
+        ui_manager_start_listening_animation();
+        ui_manager_stop_processing_animation();
+        
+    } else if (strcmp(state_name, "thinking") == 0 || strcmp(state_name, "PROCESSING") == 0) {
+        ui_manager_set_state(UI_STATE_PROCESSING);
+        ui_manager_stop_listening_animation();
+        ui_manager_start_processing_animation();
+        
+    } else if (strcmp(state_name, "speaking") == 0 || strcmp(state_name, "SPEAKING") == 0) {
+        ui_manager_set_state(UI_STATE_SPEAKING);
+        ui_manager_stop_listening_animation();
+        ui_manager_stop_processing_animation();
+        
+    } else if (strcmp(state_name, "ending") == 0) {
+        // HowdyTTS "ending" state - show ending message then auto-return to waiting
+        ui_manager_set_state(UI_STATE_IDLE);
+        ui_manager_stop_listening_animation();
+        ui_manager_stop_processing_animation();
+        // Status text should show "Goodbye, partner! Happy trails!" or similar
+        
+    } else if (strcmp(state_name, "ERROR") == 0 || strcmp(state_name, "DISCONNECTED") == 0) {
+        ui_manager_set_state(UI_STATE_ERROR);
+        ui_manager_stop_listening_animation();
+        ui_manager_stop_processing_animation();
+        
+    } else if (strcmp(state_name, "SEARCHING") == 0) {
+        ui_manager_set_state(UI_STATE_INIT);
+        ui_manager_stop_listening_animation();
+        ui_manager_start_processing_animation();
+    }
+    
+    return ESP_OK;
+}
+
+esp_err_t ui_manager_start_listening_animation(void)
+{
+    if (!s_initialized) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    // Stop any existing animation
+    if (s_listening_animation_timer) {
+        lv_timer_del(s_listening_animation_timer);
+    }
+    
+    // Start pulsing animation (60fps for smooth effect)
+    s_animation_step = 0;
+    s_listening_animation_timer = lv_timer_create(listening_animation_cb, 16, NULL);
+    
+    ESP_LOGI(TAG, "Started listening animation");
+    return ESP_OK;
+}
+
+esp_err_t ui_manager_stop_listening_animation(void)
+{
+    if (s_listening_animation_timer) {
+        lv_timer_del(s_listening_animation_timer);
+        s_listening_animation_timer = NULL;
+        
+        // Reset button scale
+        if (s_initialized && s_ui_manager.center_button) {
+            lv_obj_set_style_transform_zoom(s_ui_manager.center_button, 256, 0);
+        }
+        
+        ESP_LOGI(TAG, "Stopped listening animation");
+    }
+    
+    return ESP_OK;
+}
+
+esp_err_t ui_manager_start_processing_animation(void)
+{
+    if (!s_initialized) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    // Stop any existing animation
+    if (s_processing_animation_timer) {
+        lv_timer_del(s_processing_animation_timer);
+    }
+    
+    // Start spinner animation (30fps)
+    s_animation_step = 0;
+    s_processing_animation_timer = lv_timer_create(processing_animation_cb, 33, NULL);
+    
+    ESP_LOGI(TAG, "Started processing animation");
+    return ESP_OK;
+}
+
+esp_err_t ui_manager_stop_processing_animation(void)
+{
+    if (s_processing_animation_timer) {
+        lv_timer_del(s_processing_animation_timer);
+        s_processing_animation_timer = NULL;
+        
+        // Reset arc rotation
+        if (s_initialized && s_ui_manager.level_arc) {
+            lv_obj_set_style_transform_angle(s_ui_manager.level_arc, 0, 0);
+        }
+        
+        ESP_LOGI(TAG, "Stopped processing animation");
+    }
+    
+    return ESP_OK;
 }
