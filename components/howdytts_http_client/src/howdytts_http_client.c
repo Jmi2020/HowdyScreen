@@ -284,7 +284,7 @@ esp_err_t howdytts_client_start_health_monitor(uint32_t interval_ms)
     BaseType_t task_ret = xTaskCreatePinnedToCore(
         health_monitor_task,
         "howdy_health",
-        4096,
+        8192,  // Increased from 4096 to prevent stack overflow
         NULL,
         5,
         &s_client.health_task_handle,

@@ -958,7 +958,28 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
     tp_io_config.scl_speed_hz = CONFIG_BSP_I2C_CLK_SPEED_HZ;
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(i2c_handle, &tp_io_config, &tp_io_handle), TAG, "");
-    return esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, ret_touch);
+    
+    // Retry GT911 initialization up to 3 times to handle I2C communication issues
+    esp_err_t ret;
+    int retry_count = 3;
+    for (int i = 0; i < retry_count; i++) {
+        ret = esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, ret_touch);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "GT911 touch controller initialized successfully on attempt %d", i + 1);
+            return ret;
+        }
+        
+        ESP_LOGW(TAG, "GT911 initialization failed (attempt %d/%d): %s", 
+                 i + 1, retry_count, esp_err_to_name(ret));
+        
+        if (i < retry_count - 1) {
+            // Wait before retry
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+    }
+    
+    ESP_LOGE(TAG, "GT911 touch controller initialization failed after %d attempts", retry_count);
+    return ret;
 }
 
 #if (BSP_CONFIG_NO_GRAPHIC_LIB == 0)
