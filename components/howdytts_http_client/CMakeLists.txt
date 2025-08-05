@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS 
+        "src/howdytts_http_client.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        esp_http_client
+        esp_wifi
+        lwip
+        esp_timer
+        json
+        service_discovery)

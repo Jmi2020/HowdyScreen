@@ -22,15 +22,20 @@
 // HowdyTTS HTTP client (REST API)
 #include "howdytts_http_client.h"
 
-static const char *TAG = "HowdyPhase2";
+// HowdyTTS WebSocket client (Real-time voice)
+#include "websocket_client.h"
+
+static const char *TAG = "HowdyPhase3B";
 
 // Global handles
 static bool system_ready = false;
 static bool wifi_connected = false;
 static bool service_discovery_active = false;
 static bool http_client_active = false;
+static bool websocket_client_active = false;
 static int discovered_servers_count = 0;
 static int healthy_servers_count = 0;
+static int connected_servers_count = 0;
 
 // WiFi credentials from file
 static char wifi_ssid[32] = {0};
@@ -45,12 +50,13 @@ static void howdytts_server_health_callback(const howdytts_server_info_t *server
                                            const howdytts_server_health_t *health);
 static esp_err_t start_service_discovery(void);
 static esp_err_t start_http_client(void);
+static esp_err_t start_websocket_client(void);
 static void system_monitor_task(void *pvParameters);
 static void lvgl_tick_task(void *pvParameters);
 
 static void system_init(void)
 {
-    ESP_LOGI(TAG, "=== HowdyScreen Phase 2 System Initialization ===");
+    ESP_LOGI(TAG, "=== HowdyScreen Phase 3B System Initialization ===");
     
     // Initialize event loop (required for WiFi)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -126,7 +132,10 @@ static void wifi_connection_callback(bool connected, const char *info)
         ESP_LOGW(TAG, "📶 WiFi disconnected: %s", info);
         wifi_connected = false;
         service_discovery_active = false;
+        http_client_active = false;
+        websocket_client_active = false;
         discovered_servers_count = 0;
+        connected_servers_count = 0;
     }
 }
 
@@ -151,7 +160,40 @@ static void howdytts_server_discovered_callback(const howdytts_server_info_t *se
             howdytts_server_health_t health;
             ret = howdytts_client_health_check(server_info, &health);
             if (ret == ESP_OK) {
-                ESP_LOGI(TAG, "   🏥 Health check passed - server is healthy");
+                ESP_LOGI(TAG, "   🏥 HTTP health check passed - server is healthy");
+            }
+        }
+        
+        // If WebSocket client is active, try connecting to this server
+        if (websocket_client_active) {
+            ESP_LOGI(TAG, "   🔌 Attempting WebSocket connection...");
+            
+            // Set up WebSocket client configuration for this server
+            ws_client_config_t ws_config = {
+                .reconnect_timeout_ms = 5000,
+                .keepalive_idle_sec = 30,
+                .keepalive_interval_sec = 5,  
+                .keepalive_count = 3,
+                .auto_reconnect = true,
+                .buffer_size = 4096
+            };
+            
+            // Build WebSocket URI (assuming server uses /howdytts WebSocket endpoint)
+            snprintf(ws_config.server_uri, sizeof(ws_config.server_uri), 
+                     "ws://%s:%d/howdytts", server_info->ip_addr, server_info->port);
+            
+            // Initialize WebSocket client with event callback
+            ret = ws_client_init(&ws_config, NULL);  // NULL callback for now
+            if (ret == ESP_OK) {
+                ret = ws_client_start();
+                if (ret == ESP_OK) {
+                    ESP_LOGI(TAG, "   🚀 WebSocket connection initiated to %s", server_info->hostname);
+                    connected_servers_count++;
+                } else {
+                    ESP_LOGW(TAG, "   ❌ Failed to start WebSocket connection: %s", esp_err_to_name(ret));
+                }
+            } else {
+                ESP_LOGW(TAG, "   ❌ Failed to initialize WebSocket client: %s", esp_err_to_name(ret));
             }
         }
     } else {
@@ -195,7 +237,7 @@ static esp_err_t start_service_discovery(void)
     }
     
     // Advertise this ESP32-P4 as a HowdyTTS client
-    ret = service_discovery_advertise_client("ESP32-P4-HowdyScreen", "display,touch,audio,tts");
+    ret = service_discovery_advertise_client("ESP32-P4-HowdyScreen", "display,touch,audio,tts,websocket");
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to advertise client: %s", esp_err_to_name(ret));
         return ret;
@@ -221,6 +263,14 @@ static esp_err_t start_service_discovery(void)
         // Continue anyway - service discovery still works
     }
     
+    // Start WebSocket client after HTTP client
+    ESP_LOGI(TAG, "🔌 Starting HowdyTTS WebSocket client...");
+    ret = start_websocket_client();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(ret));
+        // Continue anyway - HTTP client still works
+    }
+    
     return ESP_OK;
 }
 
@@ -237,7 +287,7 @@ static esp_err_t start_http_client(void)
     howdytts_client_config_t config = {0};
     strncpy(config.device_id, "esp32p4-howdy-001", sizeof(config.device_id) - 1);
     strncpy(config.device_name, "ESP32-P4 HowdyScreen Display", sizeof(config.device_name) - 1);
-    strncpy(config.capabilities, "display,touch,audio,tts,lvgl", sizeof(config.capabilities) - 1);
+    strncpy(config.capabilities, "display,touch,audio,tts,lvgl,websocket", sizeof(config.capabilities) - 1);
     config.health_check_interval = 30000;  // 30 seconds
     config.request_timeout = 5000;         // 5 seconds
     config.auto_reconnect = true;
@@ -259,8 +309,29 @@ static esp_err_t start_http_client(void)
     http_client_active = true;
     ESP_LOGI(TAG, "🌐 HowdyTTS HTTP client active - monitoring server health");
     ESP_LOGI(TAG, "   Device ID: esp32p4-howdy-001");
-    ESP_LOGI(TAG, "   Capabilities: display,touch,audio,tts,lvgl");
+    ESP_LOGI(TAG, "   Capabilities: display,touch,audio,tts,lvgl,websocket");
     ESP_LOGI(TAG, "   Health Check Interval: 30000 ms");
+    
+    return ESP_OK;
+}
+
+static esp_err_t start_websocket_client(void)
+{
+    if (websocket_client_active) {
+        ESP_LOGI(TAG, "WebSocket client already active");
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Preparing HowdyTTS WebSocket client");
+    
+    // WebSocket client will be initialized when servers are discovered
+    // This just marks the client as ready to connect
+    websocket_client_active = true;
+    
+    ESP_LOGI(TAG, "🔌 HowdyTTS WebSocket client ready - waiting for server discovery");
+    ESP_LOGI(TAG, "   Mode: Auto-connect to discovered servers");
+    ESP_LOGI(TAG, "   Protocol: WebSocket over TCP");
+    ESP_LOGI(TAG, "   Endpoint: /howdytts (assumed)");
     
     return ESP_OK;
 }
@@ -281,7 +352,25 @@ static void system_monitor_task(void *pvParameters)
             ESP_LOGI(TAG, "WiFi Connected: %s", wifi_connected ? "✅" : "❌");
             ESP_LOGI(TAG, "Service Discovery: %s", service_discovery_active ? "✅" : "❌");
             ESP_LOGI(TAG, "HTTP Client: %s", http_client_active ? "✅" : "❌");
-            ESP_LOGI(TAG, "HowdyTTS Servers: %d discovered, %d healthy", discovered_servers_count, healthy_servers_count);
+            ESP_LOGI(TAG, "WebSocket Client: %s", websocket_client_active ? "✅" : "❌");
+            
+            // WebSocket connection status
+            if (websocket_client_active) {
+                ws_client_state_t ws_state = ws_client_get_state();
+                const char *state_str = "unknown";
+                switch (ws_state) {
+                    case WS_CLIENT_STATE_DISCONNECTED: state_str = "disconnected"; connected_servers_count = 0; break;
+                    case WS_CLIENT_STATE_CONNECTING: state_str = "connecting"; connected_servers_count = 0; break;
+                    case WS_CLIENT_STATE_CONNECTED: state_str = "connected"; connected_servers_count = 1; break;
+                    case WS_CLIENT_STATE_ERROR: state_str = "error"; connected_servers_count = 0; break;
+                }
+                ESP_LOGI(TAG, "WebSocket State: %s", state_str);
+            } else {
+                connected_servers_count = 0;
+            }
+            
+            ESP_LOGI(TAG, "HowdyTTS Servers: %d discovered, %d healthy, %d connected", 
+                     discovered_servers_count, healthy_servers_count, connected_servers_count);
             ESP_LOGI(TAG, "Free Heap: %lu bytes", esp_get_free_heap_size());
             
             // Reset healthy server count for next cycle
@@ -310,6 +399,11 @@ static void system_monitor_task(void *pvParameters)
                     }
                 }
             }
+            
+            // WebSocket client statistics (basic info for now)
+            if (websocket_client_active && connected_servers_count > 0) {
+                ESP_LOGI(TAG, "WebSocket Client: Active connection established");
+            }
         }
         
         // Show WiFi connection status
@@ -334,7 +428,7 @@ static void lvgl_tick_task(void *pvParameters)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "=== HowdyScreen ESP32-P4 Phase 2 Starting ===");
+    ESP_LOGI(TAG, "=== HowdyScreen ESP32-P4 Phase 3B Starting ===");
     
     // Print system information
     esp_chip_info_t chip_info;
@@ -343,7 +437,7 @@ void app_main(void)
              chip_info.cores, chip_info.revision / 100, chip_info.revision % 100);
     ESP_LOGI(TAG, "Memory: %lu bytes free heap", esp_get_free_heap_size());
     ESP_LOGI(TAG, "Board: ESP32-P4-WIFI6-Touch-LCD-3.4C (800x800 round display)");
-    ESP_LOGI(TAG, "Target: WiFi provisioning and network connectivity");
+    ESP_LOGI(TAG, "Target: WebSocket real-time voice communication with HowdyTTS");
     
     // Initialize core system
     system_init();
@@ -404,20 +498,21 @@ void app_main(void)
         return;
     }
     
-    ESP_LOGI(TAG, "🚀 HowdyScreen Phase 2 system ready!");
+    ESP_LOGI(TAG, "🚀 HowdyScreen Phase 3B system ready!");
     ESP_LOGI(TAG, "Features enabled:");
     ESP_LOGI(TAG, "  ✅ 800x800 MIPI-DSI display with LVGL");
     ESP_LOGI(TAG, "  ✅ GT911 capacitive touch controller");
     ESP_LOGI(TAG, "  ✅ WiFi provisioning with NVS persistence");
-    ESP_LOGI(TAG, "  ✅ Interactive WiFi configuration UI");
     ESP_LOGI(TAG, "  ✅ ESP32-C6 WiFi remote support");
-    ESP_LOGI(TAG, "  ✅ Network state management");
+    ESP_LOGI(TAG, "  ✅ mDNS service discovery for HowdyTTS servers");
+    ESP_LOGI(TAG, "  ✅ HTTP client for server health monitoring");
+    ESP_LOGI(TAG, "  ✅ WebSocket client for real-time voice communication");
     ESP_LOGI(TAG, "");
     ESP_LOGI(TAG, "Next steps:");
-    ESP_LOGI(TAG, "  📶 Configure WiFi via touch interface");
-    ESP_LOGI(TAG, "  🔍 Add mDNS service discovery");
+    ESP_LOGI(TAG, "  🎤 Test voice communication with HowdyTTS server");
     ESP_LOGI(TAG, "  🔊 Implement audio output pipeline");
-    ESP_LOGI(TAG, "  🎤 Integrate HowdyTTS communication");
+    ESP_LOGI(TAG, "  🎨 Add voice assistant UI animations");
+    ESP_LOGI(TAG, "  🧪 Create HowdyTTS test server for development");
     
     // Main monitoring loop
     while (1) {

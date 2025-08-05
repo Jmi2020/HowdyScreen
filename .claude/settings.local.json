@@ -39,7 +39,9 @@
       "Bash(kill:*)",
       "Bash(pkill:*)",
       "Bash(gtimeout:*)",
-      "Bash(echo $IDF_TARGET)"
+      "Bash(echo $IDF_TARGET)",
+      "Bash(curl:*)",
+      "Bash(/Users/silverlinings/.espressif/python_env/idf5.5_py3.12_env/bin/python3:*)"
     ],
     "deny": []
   }

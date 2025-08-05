@@ -86,7 +86,7 @@ esp_err_t howdytts_client_init(const howdytts_client_config_t *config)
 
     // Use manual URI if auto-discovery is disabled
     if (!s_client.config.auto_discover) {
-        strncpy(ws_config.server_uri, s_client.config.server_uri, sizeof(ws_config.server_uri) - 1);
+        snprintf(ws_config.server_uri, sizeof(ws_config.server_uri), "%s", s_client.config.server_uri);
     }
 
     esp_err_t ret = ws_client_init(&ws_config, websocket_event_callback);
@@ -396,7 +396,7 @@ static esp_err_t connect_to_server(const howdytts_server_info_t *server_info)
         .auto_reconnect = true,
         .buffer_size = 4096
     };
-    strncpy(ws_config.server_uri, ws_uri, sizeof(ws_config.server_uri) - 1);
+    snprintf(ws_config.server_uri, sizeof(ws_config.server_uri), "%s", ws_uri);
 
     // Re-initialize WebSocket client with new URI
     ws_client_stop();
