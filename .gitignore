@@ -127,3 +127,6 @@ credentials.conf
 
 # Backup files
 /backup/
+
+Temp files
+/components/temp_waveshare
