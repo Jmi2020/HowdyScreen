@@ -1,84 +1,204 @@
-#ifndef WIFI_PROVISIONING_H
-#define WIFI_PROVISIONING_H
+#pragma once
 
 #include "esp_err.h"
+#include "esp_wifi.h"
+#include "esp_netif.h"
+#include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_SSID_LEN 32
-#define MAX_PASSWORD_LEN 64
-#define MAX_MAC_LEN 18
-#define PROVISION_AP_SSID "HowdyScreen-Setup"
-#define PROVISION_AP_PASSWORD "configure"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct {
-    char ssid[MAX_SSID_LEN];
-    char password[MAX_PASSWORD_LEN];
-    char target_mac[MAX_MAC_LEN];  // MAC address of target device (Mac Studio)
-    bool configured;
-    bool ap_mode_active;
-} wifi_provision_config_t;
-
+/**
+ * @brief WiFi provisioning states
+ */
 typedef enum {
-    PROVISION_STATE_NOT_CONFIGURED,
-    PROVISION_STATE_AP_MODE,
-    PROVISION_STATE_CONNECTING,
-    PROVISION_STATE_CONNECTED,
-    PROVISION_STATE_FAILED
-} provision_state_t;
+    WIFI_PROV_STATE_INIT,           // Initial state, not started
+    WIFI_PROV_STATE_STARTING,       // Starting WiFi and checking for stored credentials
+    WIFI_PROV_STATE_CONNECTING,     // Attempting to connect with stored/provided credentials
+    WIFI_PROV_STATE_CONNECTED,      // Successfully connected to WiFi
+    WIFI_PROV_STATE_DISCONNECTED,   // Disconnected from WiFi
+    WIFI_PROV_STATE_AP_MODE,        // Running in AP mode for configuration
+    WIFI_PROV_STATE_PROVISIONING,   // Actively provisioning via AP mode
+    WIFI_PROV_STATE_ERROR           // Error state, provisioning failed
+} wifi_prov_state_t;
 
 /**
- * Initialize WiFi provisioning system
+ * @brief WiFi provisioning event types
  */
-esp_err_t wifi_provisioning_init(wifi_provision_config_t *config);
+typedef enum {
+    WIFI_PROV_EVENT_INIT_DONE,      // Provisioning system initialized
+    WIFI_PROV_EVENT_CONNECTING,     // Started connecting to WiFi
+    WIFI_PROV_EVENT_CONNECTED,      // Successfully connected to WiFi
+    WIFI_PROV_EVENT_DISCONNECTED,   // Disconnected from WiFi
+    WIFI_PROV_EVENT_AP_MODE_START,  // Started AP mode for provisioning
+    WIFI_PROV_EVENT_AP_MODE_STOP,   // Stopped AP mode
+    WIFI_PROV_EVENT_CRED_RECV,      // Received new WiFi credentials
+    WIFI_PROV_EVENT_CRED_SUCCESS,   // Successfully connected with new credentials
+    WIFI_PROV_EVENT_CRED_FAIL,      // Failed to connect with new credentials
+    WIFI_PROV_EVENT_ERROR           // Provisioning error occurred
+} wifi_prov_event_t;
 
 /**
- * Load WiFi configuration from NVS
+ * @brief WiFi credentials structure
  */
-esp_err_t wifi_provisioning_load_config(wifi_provision_config_t *config);
+typedef struct {
+    char ssid[32];                  // WiFi SSID
+    char password[64];              // WiFi password
+    bool valid;                     // Credentials are valid
+} wifi_credentials_t;
 
 /**
- * Save WiFi configuration to NVS
+ * @brief WiFi connection info
  */
-esp_err_t wifi_provisioning_save_config(const wifi_provision_config_t *config);
+typedef struct {
+    char ip_address[16];            // Current IP address
+    char gateway[16];               // Gateway IP address  
+    char netmask[16];               // Network mask
+    int rssi;                       // Signal strength in dBm
+    uint8_t channel;                // WiFi channel
+    char connected_ssid[32];        // Currently connected SSID
+    uint32_t connection_time;       // Time connected in seconds
+} wifi_connection_info_t;
 
 /**
- * Start provisioning AP mode
+ * @brief WiFi provisioning configuration
  */
-esp_err_t wifi_provisioning_start_ap(wifi_provision_config_t *config);
+typedef struct {
+    char ap_ssid[32];               // AP mode SSID (default: "HowdyScreen-XXXX")
+    char ap_password[64];           // AP mode password (default: "howdyscreen")
+    uint8_t ap_channel;             // AP mode channel (default: 1)
+    uint8_t ap_max_connections;     // Max AP connections (default: 4)
+    bool auto_connect;              // Auto-connect on boot (default: true)
+    uint32_t connect_timeout_ms;    // Connection timeout (default: 30000)
+    uint32_t retry_attempts;        // Max retry attempts (default: 5)
+    uint32_t retry_delay_ms;        // Delay between retries (default: 5000)
+} wifi_prov_config_t;
 
 /**
- * Stop provisioning AP mode
+ * @brief WiFi provisioning event callback function type
+ * 
+ * @param event WiFi provisioning event
+ * @param data Event data (can be NULL)
+ * @param user_data User data passed during registration
  */
-esp_err_t wifi_provisioning_stop_ap(wifi_provision_config_t *config);
+typedef void (*wifi_prov_event_cb_t)(wifi_prov_event_t event, void *data, void *user_data);
 
 /**
- * Connect to configured WiFi network
+ * @brief Initialize WiFi provisioning system
+ * 
+ * @param config Provisioning configuration (NULL for defaults)
+ * @param event_cb Event callback function (can be NULL)
+ * @param user_data User data passed to callback
+ * @return esp_err_t ESP_OK on success
  */
-esp_err_t wifi_provisioning_connect(wifi_provision_config_t *config);
+esp_err_t wifi_prov_init(const wifi_prov_config_t *config, wifi_prov_event_cb_t event_cb, void *user_data);
 
 /**
- * Check if target device (Mac) is on network
+ * @brief Start WiFi provisioning
+ * 
+ * This will attempt to connect using stored credentials first.
+ * If no credentials are found or connection fails, it will start AP mode.
+ * 
+ * @return esp_err_t ESP_OK on success
  */
-bool wifi_provisioning_check_target_device(const char *target_mac);
+esp_err_t wifi_prov_start(void);
 
 /**
- * Get current provisioning state
+ * @brief Stop WiFi provisioning
+ * 
+ * @return esp_err_t ESP_OK on success
  */
-provision_state_t wifi_provisioning_get_state(const wifi_provision_config_t *config);
+esp_err_t wifi_prov_stop(void);
 
 /**
- * Reset configuration (clear stored WiFi credentials)
+ * @brief Set WiFi credentials manually
+ * 
+ * @param ssid WiFi SSID
+ * @param password WiFi password
+ * @param save_to_nvs Save credentials to NVS for persistence
+ * @return esp_err_t ESP_OK on success
  */
-esp_err_t wifi_provisioning_reset(wifi_provision_config_t *config);
+esp_err_t wifi_prov_set_credentials(const char *ssid, const char *password, bool save_to_nvs);
 
 /**
- * Handle HTTP requests for configuration
+ * @brief Get stored WiFi credentials
+ * 
+ * @param credentials Output credentials structure
+ * @return esp_err_t ESP_OK if credentials exist and are valid
  */
-void wifi_provisioning_handle_request(const char *uri, const char *body, char *response, size_t max_len);
+esp_err_t wifi_prov_get_credentials(wifi_credentials_t *credentials);
 
 /**
- * Clean up provisioning resources
+ * @brief Clear stored WiFi credentials
+ * 
+ * @return esp_err_t ESP_OK on success
  */
-esp_err_t wifi_provisioning_deinit(wifi_provision_config_t *config);
+esp_err_t wifi_prov_clear_credentials(void);
 
-#endif // WIFI_PROVISIONING_H
+/**
+ * @brief Get current WiFi provisioning state
+ * 
+ * @return wifi_prov_state_t Current state
+ */
+wifi_prov_state_t wifi_prov_get_state(void);
+
+/**
+ * @brief Get WiFi connection information
+ * 
+ * @param info Output connection info structure
+ * @return esp_err_t ESP_OK if connected and info retrieved
+ */
+esp_err_t wifi_prov_get_connection_info(wifi_connection_info_t *info);
+
+/**
+ * @brief Check if WiFi is connected
+ * 
+ * @return bool true if connected to WiFi
+ */
+bool wifi_prov_is_connected(void);
+
+/**
+ * @brief Force start AP mode for provisioning
+ * 
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t wifi_prov_start_ap_mode(void);
+
+/**
+ * @brief Stop AP mode and return to normal WiFi operation
+ * 
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t wifi_prov_stop_ap_mode(void);
+
+/**
+ * @brief Scan for available WiFi networks
+ * 
+ * @param ap_records Output array of AP records
+ * @param max_aps Maximum number of APs to scan
+ * @param num_aps Output number of APs found
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t wifi_prov_scan_networks(wifi_ap_record_t *ap_records, uint16_t max_aps, uint16_t *num_aps);
+
+/**
+ * @brief Get default WiFi provisioning configuration
+ * 
+ * @param config Output configuration structure
+ */
+void wifi_prov_get_default_config(wifi_prov_config_t *config);
+
+/**
+ * @brief Reset WiFi provisioning system
+ * 
+ * Clears all stored credentials and resets to initial state.
+ * 
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t wifi_prov_reset(void);
+
+#ifdef __cplusplus
+}
+#endif

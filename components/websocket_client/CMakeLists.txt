@@ -1,0 +1,20 @@
+idf_component_register(
+    SRCS 
+        "src/websocket_client.c"
+        "src/howdytts_protocol.c"
+        "src/howdytts_http_server.c"
+        "src/howdytts_udp_stream.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        esp_websocket_client
+        esp_http_client
+        esp_http_server
+        json
+        esp_wifi
+        mdns
+        audio_processor
+        esp_timer
+        mbedtls
+        lwip
+)

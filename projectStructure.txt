@@ -1,0 +1,15 @@
+howdy_esp32p4/
+├── CMakeLists.txt
+├── sdkconfig
+├── sdkconfig.defaults
+├── partitions.csv
+├── main/
+│   ├── CMakeLists.txt
+│   ├── main.cpp
+│   └── Kconfig.projbuild
+├── components/
+│   ├── audio_processor/
+│   ├── ui_manager/
+│   ├── network_manager/
+│   └── device_config/
+└── managed_components/

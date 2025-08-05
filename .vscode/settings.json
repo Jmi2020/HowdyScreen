@@ -1,13 +1,20 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPath": "/Users/silverlinings/esp/v5.4/esp-idf",
-  "idf.pythonInstallPath": "/Users/silverlinings/anaconda3/bin/python3",
+  "idf.espIdfPath": "/Users/silverlinings/esp/v5.5/esp-idf",
+  "idf.pythonInstallPath": "/opt/anaconda3/bin/python",
   "idf.openOcdConfigs": [
     "board/esp32p4-builtin.cfg"
   ],
-  "idf.port": "/dev/tty.debug-console",
+  "idf.port": "/dev/tty.usbmodem133101",
   "idf.toolsPath": "/Users/silverlinings/.espressif",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32p4"
-  }
+  },
+  "clangd.path": "/Users/silverlinings/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=/Users/silverlinings/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
+    "--compile-commands-dir=${workspaceFolder}/build"
+  ],
+  "idf.flashType": "UART"
 }

@@ -1,5 +1,7 @@
 # ESP-IDF build system
 build/
+*/build/
+**/build/
 sdkconfig.old
 *.tmp
 
@@ -84,7 +86,15 @@ docs/_build/
 
 # Component manager
 managed_components/
+*/managed_components/
+**/managed_components/
 !managed_components/.gitkeep
+
+# Demo projects and external code
+ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
+**/ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
+ESP32-P4-WIFI6-Touch-LCD-XC-Demo.zip
+Research/ESP32-P4-WIFI6-Touch-LCD-XC-Demo/
 
 # Test reports
 test_results/
@@ -106,3 +116,6 @@ tags
 # Local configuration overrides
 local.conf
 private.conf
+
+# Backup files
+/backup/

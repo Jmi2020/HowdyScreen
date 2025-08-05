@@ -1,50 +1,97 @@
 menu "HowdyScreen Configuration"
-
     config HOWDY_WIFI_SSID
         string "WiFi SSID"
-        default "myssid"
+        default "YourWiFiNetwork"
         help
-            SSID (network name) for the HowdyScreen to connect to.
+            WiFi network name to connect to
 
     config HOWDY_WIFI_PASSWORD
         string "WiFi Password"
-        default "mypassword"
+        default "YourWiFiPassword"
         help
-            WiFi password (WPA or WPA2) for the HowdyScreen to use.
+            WiFi network password
 
-    config HOWDY_WIFI_MAXIMUM_RETRY
-        int "Maximum retry"
-        default 5
+    config HOWDY_SERVER_IP
+        string "HowdyTTS Server IP"
+        default "192.168.1.100"
         help
-            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+            IP address of your Mac Studio running HowdyTTS
+    
+    config HOWDY_AUDIO_TASK_PRIORITY
+        int "Audio Task Priority"
+        default 23
+        range 1 25
+        help
+            FreeRTOS priority for audio capture task
 
-    config HOWDY_USE_WIFI_PROVISIONING
-        bool "Enable WiFi Provisioning"
+    config HOWDY_USE_ESP_WIFI_REMOTE
+        bool "Use ESP32-C6 WiFi Remote"
         default y
         help
-            Enable WiFi provisioning mode if no saved credentials exist.
+            Enable ESP32-C6 co-processor for WiFi connectivity via SDIO
 
-    config HOWDY_SERVER_UDP_PORT
-        int "HowdyTTS Server UDP Port"
-        default 8002
-        help
-            UDP port for audio streaming to/from HowdyTTS server.
+    menu "SDIO Pin Configuration"
+        depends on HOWDY_USE_ESP_WIFI_REMOTE
 
-    menu "ESP32-P4 + ESP32-C6 Configuration"
-        
-        config HOWDY_USE_ESP_WIFI_REMOTE
-            bool "Use ESP WiFi Remote (for ESP32-C6 co-processor)"
-            default y
+        config HOWDY_SDIO_CLK_GPIO
+            int "SDIO Clock GPIO"
+            default 36
             help
-                Enable this when using ESP32-P4 with ESP32-C6 as WiFi co-processor via SDIO.
+                GPIO pin for SDIO clock line
 
-        config HOWDY_SDIO_INTERFACE
-            bool "Enable SDIO Interface for ESP32-C6"
-            default y
-            depends on HOWDY_USE_ESP_WIFI_REMOTE
+        config HOWDY_SDIO_CMD_GPIO
+            int "SDIO Command GPIO" 
+            default 37
             help
-                Use SDIO interface to communicate with ESP32-C6 WiFi module.
+                GPIO pin for SDIO command line
 
+        config HOWDY_SDIO_D0_GPIO
+            int "SDIO Data 0 GPIO"
+            default 35
+            help
+                GPIO pin for SDIO data line 0
+
+        config HOWDY_SDIO_D1_GPIO
+            int "SDIO Data 1 GPIO"
+            default 34
+            help
+                GPIO pin for SDIO data line 1
+
+        config HOWDY_SDIO_D2_GPIO
+            int "SDIO Data 2 GPIO"
+            default 33
+            help
+                GPIO pin for SDIO data line 2
+
+        config HOWDY_SDIO_D3_GPIO
+            int "SDIO Data 3 GPIO"
+            default 48
+            help
+                GPIO pin for SDIO data line 3
+
+        config HOWDY_SLAVE_RESET_GPIO
+            int "ESP32-C6 Reset GPIO"
+            default 47
+            help
+                GPIO pin for ESP32-C6 reset line
     endmenu
 
+    config WEBSOCKET_BUFFER_SIZE
+        int "WebSocket Buffer Size"
+        default 2048
+        help
+            Buffer size for WebSocket communication
+
+    config MDNS_ENABLED
+        bool "Enable mDNS Service"
+        default y
+        help
+            Enable mDNS for service discovery
+
+    config MDNS_HOSTNAME
+        string "mDNS Hostname"
+        default "howdyscreen"
+        depends on MDNS_ENABLED
+        help
+            Hostname for mDNS service advertisement
 endmenu

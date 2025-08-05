@@ -13,6 +13,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
+#include "esp_wifi_remote.h"
+#endif
+
 static const char *TAG = "network_manager";
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -75,15 +79,19 @@ esp_err_t network_manager_init(network_manager_t *manager, const char *ssid, con
     }
     ESP_ERROR_CHECK(ret);
 
-    // Initialize network interface
+    // Initialize network interface (event loop should already be created)
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
     
     esp_netif_create_default_wifi_sta();
 
     // Initialize WiFi
+#ifdef CONFIG_HOWDY_USE_ESP_WIFI_REMOTE
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_remote_init(&cfg));
+#else
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+#endif
 
     s_wifi_event_group = xEventGroupCreate();
 
@@ -132,12 +140,20 @@ esp_err_t network_manager_connect(network_manager_t *manager)
     
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    // Wait for connection
+    // Wait for connection with 30 second timeout to prevent indefinite blocking
+    #define WIFI_CONNECTION_TIMEOUT_MS 30000
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE,
                                            pdFALSE,
-                                           portMAX_DELAY);
+                                           pdMS_TO_TICKS(WIFI_CONNECTION_TIMEOUT_MS));
+    
+    // Check for timeout condition
+    if (bits == 0) {
+        ESP_LOGE(TAG, "WiFi connection timeout after %d ms", WIFI_CONNECTION_TIMEOUT_MS);
+        manager->state = NETWORK_STATE_ERROR;
+        return ESP_ERR_TIMEOUT;
+    }
 
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to WiFi SSID:%s", manager->ssid);

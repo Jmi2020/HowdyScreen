@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS 
+        "src/service_discovery.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        mdns
+        esp_wifi
+        lwip
+        esp_timer)

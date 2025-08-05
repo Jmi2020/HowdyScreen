@@ -1,0 +1,367 @@
+#include <string.h>
+#include "audio_processor.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/ringbuf.h"
+#include "driver/i2s_std.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+#include "esp_check.h"
+
+static const char *TAG = "AudioProcessor";
+
+// Audio configuration
+static audio_processor_config_t s_config;
+static bool s_initialized = false;
+static bool s_capture_active = false;
+static bool s_playback_active = false;
+
+// I2S handles
+static i2s_chan_handle_t s_tx_handle = NULL;
+static i2s_chan_handle_t s_rx_handle = NULL;
+
+// Task handles
+static TaskHandle_t s_capture_task_handle = NULL;
+static TaskHandle_t s_playback_task_handle = NULL;
+
+// Ring buffer for audio data
+static RingbufHandle_t s_ringbuf_handle = NULL;
+
+// Callback function
+static audio_event_callback_t s_event_callback = NULL;
+
+// Audio buffer
+static uint8_t *s_audio_buffer = NULL;
+static size_t s_buffer_size = 0;
+
+// GPIO definitions for ESP32-P4 + ES8311
+#define I2S_MCLK_GPIO    GPIO_NUM_13
+#define I2S_BCLK_GPIO    GPIO_NUM_12
+#define I2S_WS_GPIO      GPIO_NUM_10
+#define I2S_DO_GPIO      GPIO_NUM_11  // Speaker output
+#define I2S_DI_GPIO      GPIO_NUM_9   // Microphone input
+
+static void audio_capture_task(void *pvParameters)
+{
+    uint8_t *buffer = (uint8_t *)malloc(s_config.dma_buf_len * s_config.bits_per_sample / 8);
+    if (!buffer) {
+        ESP_LOGE(TAG, "Failed to allocate capture buffer");
+        vTaskDelete(NULL);
+        return;
+    }
+    
+    size_t bytes_read = 0;
+    
+    ESP_LOGI(TAG, "Audio capture task started");
+    
+    while (s_capture_active) {
+        // Read audio data from I2S
+        esp_err_t ret = i2s_channel_read(s_rx_handle, buffer, 
+                                       s_config.dma_buf_len * s_config.bits_per_sample / 8, 
+                                       &bytes_read, pdMS_TO_TICKS(100));
+        
+        if (ret == ESP_OK && bytes_read > 0) {
+            // Send to ring buffer
+            if (xRingbufferSend(s_ringbuf_handle, buffer, bytes_read, 0) != pdTRUE) {
+                ESP_LOGW(TAG, "Ring buffer full, dropping audio data");
+            }
+            
+            // Notify callback if set
+            if (s_event_callback) {
+                s_event_callback(AUDIO_EVENT_DATA_READY, buffer, bytes_read);
+            }
+        } else if (ret != ESP_ERR_TIMEOUT) {
+            ESP_LOGE(TAG, "I2S read error: %s", esp_err_to_name(ret));
+            if (s_event_callback) {
+                s_event_callback(AUDIO_EVENT_ERROR, NULL, 0);
+            }
+            break;
+        }
+    }
+    
+    free(buffer);
+    ESP_LOGI(TAG, "Audio capture task stopped");
+    vTaskDelete(NULL);
+}
+
+static void audio_playback_task(void *pvParameters)
+{
+    ESP_LOGI(TAG, "Audio playback task started");
+    
+    while (s_playback_active) {
+        // This will be implemented when we have playback data
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    
+    ESP_LOGI(TAG, "Audio playback task stopped");
+    vTaskDelete(NULL);
+}
+
+static esp_err_t setup_i2s_channels(void)
+{
+    ESP_LOGI(TAG, "Setting up I2S channels...");
+    
+    // I2S channel configuration
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
+    chan_cfg.dma_desc_num = s_config.dma_buf_count;
+    chan_cfg.dma_frame_num = s_config.dma_buf_len;
+    
+    // Create I2S channels
+    ESP_RETURN_ON_ERROR(i2s_new_channel(&chan_cfg, &s_tx_handle, &s_rx_handle), TAG, "Failed to create I2S channels");
+    
+    // I2S standard configuration
+    i2s_std_config_t std_cfg = {
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(s_config.sample_rate),
+        .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(
+            (i2s_data_bit_width_t)s_config.bits_per_sample,
+            (i2s_slot_mode_t)s_config.channels
+        ),
+        .gpio_cfg = {
+            .mclk = I2S_MCLK_GPIO,
+            .bclk = I2S_BCLK_GPIO,
+            .ws = I2S_WS_GPIO,
+            .dout = I2S_DO_GPIO,
+            .din = I2S_DI_GPIO,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
+    };
+    
+    // Initialize channels
+    ESP_RETURN_ON_ERROR(i2s_channel_init_std_mode(s_tx_handle, &std_cfg), TAG, "Failed to init TX channel");
+    ESP_RETURN_ON_ERROR(i2s_channel_init_std_mode(s_rx_handle, &std_cfg), TAG, "Failed to init RX channel");
+    
+    ESP_LOGI(TAG, "I2S channels configured successfully");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_init(const audio_processor_config_t *config)
+{
+    if (s_initialized) {
+        ESP_LOGW(TAG, "Audio processor already initialized");
+        return ESP_OK;
+    }
+    
+    if (!config) {
+        ESP_LOGE(TAG, "Invalid configuration");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    ESP_LOGI(TAG, "Initializing audio processor...");
+    
+    // Copy configuration
+    memcpy(&s_config, config, sizeof(audio_processor_config_t));
+    
+    // Setup I2S channels
+    ESP_RETURN_ON_ERROR(setup_i2s_channels(), TAG, "Failed to setup I2S channels");
+    
+    // Create ring buffer for audio data
+    s_ringbuf_handle = xRingbufferCreate(s_config.dma_buf_len * s_config.dma_buf_count * 4, RINGBUF_TYPE_BYTEBUF);
+    if (!s_ringbuf_handle) {
+        ESP_LOGE(TAG, "Failed to create ring buffer");
+        return ESP_ERR_NO_MEM;
+    }
+    
+    // Allocate audio buffer
+    s_buffer_size = s_config.dma_buf_len * s_config.bits_per_sample / 8;
+    s_audio_buffer = (uint8_t *)malloc(s_buffer_size);
+    if (!s_audio_buffer) {
+        ESP_LOGE(TAG, "Failed to allocate audio buffer");
+        return ESP_ERR_NO_MEM;
+    }
+    
+    s_initialized = true;
+    ESP_LOGI(TAG, "Audio processor initialized successfully");
+    
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_start_capture(void)
+{
+    if (!s_initialized) {
+        ESP_LOGE(TAG, "Audio processor not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    if (s_capture_active) {
+        ESP_LOGW(TAG, "Audio capture already active");
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Starting audio capture...");
+    
+    // Enable RX channel
+    ESP_RETURN_ON_ERROR(i2s_channel_enable(s_rx_handle), TAG, "Failed to enable RX channel");
+    
+    s_capture_active = true;
+    
+    // Create capture task
+    BaseType_t ret = xTaskCreatePinnedToCore(
+        audio_capture_task,
+        "audio_capture",
+        4096,
+        NULL,
+        s_config.task_priority,
+        &s_capture_task_handle,
+        s_config.task_core
+    );
+    
+    if (ret != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create audio capture task");
+        s_capture_active = false;
+        i2s_channel_disable(s_rx_handle);
+        return ESP_FAIL;
+    }
+    
+    if (s_event_callback) {
+        s_event_callback(AUDIO_EVENT_STARTED, NULL, 0);
+    }
+    
+    ESP_LOGI(TAG, "Audio capture started");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_stop_capture(void)
+{
+    if (!s_capture_active) {
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Stopping audio capture...");
+    
+    s_capture_active = false;
+    
+    // Wait for task to finish
+    if (s_capture_task_handle) {
+        // Task will delete itself
+        s_capture_task_handle = NULL;
+    }
+    
+    // Disable RX channel
+    i2s_channel_disable(s_rx_handle);
+    
+    if (s_event_callback) {
+        s_event_callback(AUDIO_EVENT_STOPPED, NULL, 0);
+    }
+    
+    ESP_LOGI(TAG, "Audio capture stopped");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_start_playback(void)
+{
+    if (!s_initialized) {
+        ESP_LOGE(TAG, "Audio processor not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    if (s_playback_active) {
+        ESP_LOGW(TAG, "Audio playback already active");
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Starting audio playback...");
+    
+    // Enable TX channel
+    ESP_RETURN_ON_ERROR(i2s_channel_enable(s_tx_handle), TAG, "Failed to enable TX channel");
+    
+    s_playback_active = true;
+    
+    // Create playback task
+    BaseType_t ret = xTaskCreatePinnedToCore(
+        audio_playback_task,
+        "audio_playback",
+        4096,
+        NULL,
+        s_config.task_priority - 1,
+        &s_playback_task_handle,
+        s_config.task_core
+    );
+    
+    if (ret != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create audio playback task");
+        s_playback_active = false;
+        i2s_channel_disable(s_tx_handle);
+        return ESP_FAIL;
+    }
+    
+    ESP_LOGI(TAG, "Audio playback started");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_stop_playback(void)
+{
+    if (!s_playback_active) {
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "Stopping audio playback...");
+    
+    s_playback_active = false;
+    
+    // Wait for task to finish
+    if (s_playback_task_handle) {
+        s_playback_task_handle = NULL;
+    }
+    
+    // Disable TX channel
+    i2s_channel_disable(s_tx_handle);
+    
+    ESP_LOGI(TAG, "Audio playback stopped");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_set_callback(audio_event_callback_t callback)
+{
+    s_event_callback = callback;
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_get_buffer(uint8_t **buffer, size_t *length)
+{
+    if (!buffer || !length) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Get data from ring buffer
+    size_t item_size;
+    uint8_t *item = (uint8_t *)xRingbufferReceive(s_ringbuf_handle, &item_size, 0);
+    
+    if (item) {
+        *buffer = item;
+        *length = item_size;
+        return ESP_OK;
+    } else {
+        *buffer = NULL;
+        *length = 0;
+        return ESP_ERR_NOT_FOUND;
+    }
+}
+
+esp_err_t audio_processor_release_buffer(void)
+{
+    // This would be called after processing the buffer
+    // Implementation depends on ring buffer usage
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_write_data(const uint8_t *data, size_t length)
+{
+    if (!s_initialized || !s_playback_active) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    size_t bytes_written = 0;
+    esp_err_t ret = i2s_channel_write(s_tx_handle, data, length, &bytes_written, pdMS_TO_TICKS(100));
+    
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "I2S write error: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    return ESP_OK;
+}

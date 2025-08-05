@@ -1,21 +1,4 @@
-idf_component_register(SRCS "main.c"
-                             "audio_pipeline.c"
-                             "display_manager.c"
-                             "led_controller.c"
-                             "led_strip_encoder.c"
-                             "network_manager.c"
-                             "server_discovery.c"
-                             "wifi_provisioning.c"
-                             "assets/howdy64_gif.c"
-                    INCLUDE_DIRS "." "assets"
-                    REQUIRES 
-                        "nvs_flash"
-                        "driver"
-                        "esp_common"
-                        "esp_wifi"
-                        "esp_netif"
-                        "esp_http_server"
-                        "mdns"
-                        "lwip"
-                        "json"
-                        "lvgl")
+idf_component_register(SRCS "howdy_minimal_integration.c"
+                       INCLUDE_DIRS "."
+                       REQUIRES driver esp_timer bsp esp_event nvs_flash
+                                audio_processor websocket_client)
