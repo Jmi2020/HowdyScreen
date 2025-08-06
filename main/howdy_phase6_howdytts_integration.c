@@ -35,8 +35,15 @@
 #include "ui_manager.h"
 #include "wifi_manager.h"
 #include "audio_processor.h"
+#include "enhanced_vad.h"
+#include "enhanced_udp_audio.h"
+#include "esp32_p4_wake_word.h"
+#include "esp32_p4_vad_feedback.h"
 
 static const char *TAG = "HowdyPhase6";
+
+// Forward declarations
+esp_err_t init_vad_feedback_client(const char *server_ip);
 
 // Global state
 typedef struct {
@@ -46,33 +53,206 @@ typedef struct {
     howdytts_server_info_t selected_server;
     uint32_t audio_packets_sent;
     float current_audio_level;
+    
+    // Enhanced VAD state
+    enhanced_vad_handle_t vad_handle;
+    bool vad_initialized;
+    enhanced_udp_audio_stats_t vad_stats;
+    
+    // Wake word detection state
+    esp32_p4_wake_word_handle_t wake_word_handle;
+    bool wake_word_initialized;
+    uint32_t wake_word_detections;
+    
+    // VAD feedback client state
+    vad_feedback_handle_t vad_feedback_handle;
+    bool vad_feedback_connected;
 } app_state_t;
 
 static app_state_t s_app_state = {0};
+
+// Wake word detection callback
+static void wake_word_detection_callback(const esp32_p4_wake_word_result_t *result, void *user_data)
+{
+    if (!result) return;
+    
+    s_app_state.wake_word_detections++;
+    
+    ESP_LOGI(TAG, "🎯 Wake word detected! Confidence: %.2f%%, Pattern: %d, Syllables: %d", 
+            result->confidence_score * 100, 
+            result->pattern_match_score,
+            result->syllable_count);
+    
+    // Update UI immediately for wake word detection
+    ui_manager_set_state(UI_STATE_LISTENING);
+    char wake_word_msg[128];
+    snprintf(wake_word_msg, sizeof(wake_word_msg), 
+             "Wake word detected (%.0f%% confidence)", result->confidence_score * 100);
+    ui_manager_update_status(wake_word_msg);
+    
+    // Send wake word detection to VAD feedback server for validation
+    if (s_app_state.vad_feedback_connected) {
+        vad_feedback_send_wake_word_detection(s_app_state.vad_feedback_handle,
+                                             result->detection_timestamp_ms, // Use timestamp as ID
+                                             result,
+                                             NULL); // No VAD result in this callback
+    }
+    
+    // Start audio streaming to HowdyTTS server if connected
+    if (s_app_state.howdytts_connected) {
+        ESP_LOGI(TAG, "🎤 Starting audio streaming after wake word detection");
+        howdytts_start_audio_streaming();
+    }
+}
+
+// VAD feedback event callback
+static void vad_feedback_event_callback(vad_feedback_message_type_t type, 
+                                       const void *data, 
+                                       size_t data_len, 
+                                       void *user_data)
+{
+    switch (type) {
+        case VAD_FEEDBACK_WAKE_WORD_VALIDATION: {
+            const vad_feedback_wake_word_validation_t *validation = 
+                (const vad_feedback_wake_word_validation_t*)data;
+            
+            ESP_LOGI(TAG, "%s Server %s wake word (ID: %lu, confidence: %.3f, time: %lums)",
+                    validation->validated ? "✅" : "❌",
+                    validation->validated ? "confirmed" : "rejected",
+                    validation->detection_id,
+                    validation->server_confidence,
+                    validation->processing_time_ms);
+            
+            // Apply server feedback to wake word detector
+            if (s_app_state.wake_word_initialized) {
+                esp32_p4_wake_word_server_feedback(s_app_state.wake_word_handle,
+                                                  validation->detection_id,
+                                                  validation->validated,
+                                                  validation->processing_time_ms);
+            }
+            
+            // Update UI based on server validation
+            if (validation->validated) {
+                ui_manager_update_status("Wake word confirmed by server");
+                // Continue with voice processing
+            } else {
+                ui_manager_update_status("False alarm - wake word rejected");
+                ui_manager_set_state(UI_STATE_IDLE);
+                // Stop audio streaming if it was started
+                howdytts_stop_audio_streaming();
+            }
+            break;
+        }
+        
+        case VAD_FEEDBACK_THRESHOLD_UPDATE: {
+            const vad_feedback_threshold_update_t *update = 
+                (const vad_feedback_threshold_update_t*)data;
+            
+            ESP_LOGI(TAG, "🔧 Applying threshold update: energy=%d, confidence=%.3f (%s)",
+                    update->new_energy_threshold,
+                    update->new_confidence_threshold,
+                    update->reason);
+            
+            // Apply threshold updates to wake word detector
+            if (s_app_state.wake_word_initialized) {
+                esp32_p4_wake_word_update_thresholds(s_app_state.wake_word_handle,
+                                                    update->new_energy_threshold,
+                                                    update->new_confidence_threshold);
+            }
+            
+            char threshold_msg[128];
+            snprintf(threshold_msg, sizeof(threshold_msg), 
+                    "Thresholds updated: E=%d C=%.2f", 
+                    update->new_energy_threshold,
+                    update->new_confidence_threshold);
+            ui_manager_update_status(threshold_msg);
+            break;
+        }
+        
+        default:
+            ESP_LOGD(TAG, "VAD feedback event type: %d", type);
+            break;
+    }
+}
 
 // HowdyTTS integration callbacks
 static esp_err_t howdytts_audio_callback(const int16_t *audio_data, size_t samples, void *user_data)
 {
     ESP_LOGD(TAG, "Audio callback: streaming %d samples to HowdyTTS server", (int)samples);
     
-    // Stream audio to HowdyTTS server
-    esp_err_t ret = howdytts_stream_audio(audio_data, samples);
+    esp_err_t ret = ESP_OK;
+    
+    // Process audio with enhanced VAD if available
+    enhanced_vad_result_t vad_result = {0};
+    if (s_app_state.vad_initialized && s_app_state.vad_handle) {
+        ret = enhanced_vad_process_audio(s_app_state.vad_handle, audio_data, samples, &vad_result);
+        if (ret != ESP_OK) {
+            ESP_LOGW(TAG, "VAD processing failed: %s", esp_err_to_name(ret));
+            // Continue without VAD data
+            memset(&vad_result, 0, sizeof(enhanced_vad_result_t));
+        }
+    }
+    
+    // Process audio with wake word detection if available
+    esp32_p4_wake_word_result_t wake_word_result = {0};
+    bool has_wake_word = false;
+    if (s_app_state.wake_word_initialized && s_app_state.wake_word_handle) {
+        ret = esp32_p4_wake_word_process(s_app_state.wake_word_handle, 
+                                        audio_data, samples, 
+                                        s_app_state.vad_initialized ? &vad_result : NULL,
+                                        &wake_word_result);
+        if (ret == ESP_OK && wake_word_result.state == WAKE_WORD_STATE_TRIGGERED) {
+            has_wake_word = true;
+            ESP_LOGI(TAG, "🎯 Wake word 'Hey Howdy' detected in audio callback!");
+        }
+    }
+    
+    // Stream audio with VAD and wake word data using enhanced UDP
+    if (s_app_state.vad_initialized && has_wake_word) {
+        // Use wake word enhanced UDP for wake word events
+        ret = enhanced_udp_audio_send_with_wake_word(audio_data, samples, 
+                                                    &vad_result, &wake_word_result);
+    } else if (s_app_state.vad_initialized) {
+        // Use regular enhanced UDP with VAD data
+        ret = enhanced_udp_audio_send_with_vad(audio_data, samples, &vad_result);
+    } else {
+        // Fallback to regular HowdyTTS streaming
+        ret = howdytts_stream_audio(audio_data, samples);
+    }
+    
     if (ret == ESP_OK) {
         s_app_state.audio_packets_sent++;
         
         // Calculate audio level for UI feedback
-        float level = 0.0f;
-        for (size_t i = 0; i < samples; i++) {
-            level += (float)(abs(audio_data[i])) / 32768.0f;
-        }
-        s_app_state.current_audio_level = level / samples;
+        s_app_state.current_audio_level = vad_result.max_amplitude > 0 ? 
+            (float)vad_result.max_amplitude / 32768.0f : 0.0f;
         
-        // Update UI with audio level
+        // Update UI with audio level and VAD state
         ui_manager_update_audio_level((int)(s_app_state.current_audio_level * 100));
         
-        // Update device status
-        int signal_strength = -45; // Placeholder WiFi RSSI
-        howdytts_update_device_status(s_app_state.current_audio_level, -1, signal_strength);
+        // Enhanced UI feedback based on VAD
+        if (s_app_state.vad_initialized && vad_result.voice_detected) {
+            if (vad_result.speech_started) {
+                ESP_LOGI(TAG, "🗣️ Speech detected! Confidence: %.2f", vad_result.confidence);
+                ui_manager_set_state(UI_STATE_LISTENING);
+            }
+            
+            // Show VAD confidence in UI
+            if (vad_result.high_confidence) {
+                char confidence_msg[64];
+                snprintf(confidence_msg, sizeof(confidence_msg), 
+                        "Voice detected (%.0f%% confidence)", vad_result.confidence * 100);
+                ui_manager_update_status(confidence_msg);
+            }
+        } else if (s_app_state.vad_initialized && vad_result.speech_ended) {
+            ESP_LOGI(TAG, "🤫 Speech ended");
+            ui_manager_set_state(UI_STATE_PROCESSING);
+        }
+        
+        // Update device status with VAD metrics
+        int signal_strength = wifi_manager_get_signal_strength();
+        float noise_floor_db = vad_result.snr_db > 0 ? vad_result.snr_db : -1;
+        howdytts_update_device_status(s_app_state.current_audio_level, noise_floor_db, signal_strength);
     }
     
     return ret;
@@ -120,6 +300,11 @@ static void howdytts_event_callback(const howdytts_event_data_t *event, void *us
             s_app_state.howdytts_connected = true;
             ui_manager_update_status("Connected to HowdyTTS");
             ui_manager_set_state(UI_STATE_IDLE);
+            
+            // Initialize VAD feedback client now that we have server connection
+            if (!s_app_state.vad_feedback_connected && s_app_state.selected_server.ip_address[0] != '\0') {
+                init_vad_feedback_client(s_app_state.selected_server.ip_address);
+            }
             break;
             
         case HOWDYTTS_EVENT_CONNECTION_LOST:
@@ -218,26 +403,35 @@ static void voice_activation_callback(bool start_voice)
 // WiFi connection monitoring task
 static void wifi_monitor_task(void *pvParameters)
 {
+    ESP_LOGI(TAG, "WiFi monitor task started");
+    
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(5000)); // Check every 5 seconds
+        vTaskDelay(pdMS_TO_TICKS(10000)); // Check every 10 seconds
         
+        // Add error handling to prevent crashes
         bool wifi_connected = wifi_manager_is_connected();
         
         if (wifi_connected != s_app_state.wifi_connected) {
             s_app_state.wifi_connected = wifi_connected;
             
             if (wifi_connected) {
-                ESP_LOGI(TAG, "📶 WiFi connected successfully");
-                ui_manager_set_wifi_strength(wifi_manager_get_signal_strength());
-                ui_manager_update_status("WiFi connected - starting discovery...");
+                ESP_LOGI(TAG, "WiFi connected");
+                
+                // Safely update UI if functions are available
+                int signal_strength = wifi_manager_get_signal_strength();
+                if (signal_strength >= 0) {
+                    ui_manager_set_wifi_strength(signal_strength);
+                }
+                ui_manager_update_status("WiFi connected");
                 
                 // Start HowdyTTS server discovery
                 if (!s_app_state.discovery_completed) {
-                    howdytts_discovery_start(15000); // 15 second timeout
+                    ESP_LOGI(TAG, "Starting HowdyTTS discovery");
+                    howdytts_discovery_start(15000);
                     s_app_state.discovery_completed = true;
                 }
             } else {
-                ESP_LOGW(TAG, "📶 WiFi disconnected");
+                ESP_LOGW(TAG, "WiFi disconnected");
                 s_app_state.howdytts_connected = false;
                 ui_manager_set_wifi_strength(0);
                 ui_manager_update_status("WiFi disconnected");
@@ -245,9 +439,12 @@ static void wifi_monitor_task(void *pvParameters)
             }
         }
         
-        // Update signal strength if connected
+        // Update signal strength periodically if connected
         if (wifi_connected) {
-            ui_manager_set_wifi_strength(wifi_manager_get_signal_strength());
+            int signal_strength = wifi_manager_get_signal_strength();
+            if (signal_strength >= 0) {
+                ui_manager_set_wifi_strength(signal_strength);
+            }
         }
     }
 }
@@ -276,7 +473,90 @@ static esp_err_t system_init(void)
 
 static esp_err_t howdytts_integration_init_app(void)
 {
-    ESP_LOGI(TAG, "🔧 Initializing HowdyTTS integration");
+    ESP_LOGI(TAG, "🔧 Initializing HowdyTTS integration with Enhanced VAD and Wake Word Detection");
+    
+    // Initialize Enhanced VAD first
+    enhanced_vad_config_t vad_config;
+    enhanced_vad_get_default_config(16000, &vad_config);
+    
+    // Optimize VAD for ESP32-P4 HowdyScreen environment
+    vad_config.amplitude_threshold = 2500;          // Adjust for microphone sensitivity
+    vad_config.silence_threshold_ms = 1200;         // 1.2s silence detection
+    vad_config.min_voice_duration_ms = 300;         // 300ms minimum voice
+    vad_config.snr_threshold_db = 8.0f;            // 8dB SNR requirement
+    vad_config.consistency_frames = 5;              // 5-frame consistency
+    vad_config.confidence_threshold = 0.7f;         // 70% confidence minimum
+    
+    s_app_state.vad_handle = enhanced_vad_init(&vad_config);
+    if (s_app_state.vad_handle) {
+        s_app_state.vad_initialized = true;
+        ESP_LOGI(TAG, "✅ Enhanced VAD initialized successfully");
+    } else {
+        ESP_LOGW(TAG, "⚠️ Enhanced VAD initialization failed - continuing with basic audio");
+        s_app_state.vad_initialized = false;
+    }
+    
+    // Initialize Wake Word Detection Engine
+    esp32_p4_wake_word_config_t wake_word_config;
+    esp32_p4_wake_word_get_default_config(&wake_word_config);
+    
+    // Optimize wake word detection for "Hey Howdy"
+    wake_word_config.sample_rate = 16000;            // 16kHz audio
+    wake_word_config.frame_size = 320;               // 20ms frames
+    wake_word_config.energy_threshold = 3000;        // Moderate sensitivity
+    wake_word_config.confidence_threshold = 0.65f;   // 65% confidence required
+    wake_word_config.silence_timeout_ms = 2000;      // 2 second silence timeout
+    wake_word_config.enable_adaptation = true;       // Enable adaptive learning
+    wake_word_config.adaptation_rate = 0.05f;        // 5% adaptation rate
+    wake_word_config.max_detections_per_min = 12;    // Rate limiting
+    
+    s_app_state.wake_word_handle = esp32_p4_wake_word_init(&wake_word_config);
+    if (s_app_state.wake_word_handle) {
+        s_app_state.wake_word_initialized = true;
+        
+        // Set wake word detection callback
+        esp32_p4_wake_word_set_callback(s_app_state.wake_word_handle,
+                                       wake_word_detection_callback,
+                                       NULL);
+        
+        ESP_LOGI(TAG, "✅ ESP32-P4 Wake Word Detection initialized");
+        ESP_LOGI(TAG, "🎯 Target phrase: 'Hey Howdy'");
+        ESP_LOGI(TAG, "🔧 Energy threshold: %d, Confidence: %.2f", 
+                wake_word_config.energy_threshold, wake_word_config.confidence_threshold);
+    } else {
+        ESP_LOGW(TAG, "⚠️ Wake word detection initialization failed - continuing without wake word");
+        s_app_state.wake_word_initialized = false;
+    }
+    
+    // Initialize Enhanced UDP Audio if VAD is available
+    if (s_app_state.vad_initialized) {
+        enhanced_udp_audio_config_t udp_config;
+        udp_audio_config_t basic_udp_config = {
+            .server_ip = "192.168.1.100",  // Will be updated by discovery
+            .server_port = 8000,            // HowdyTTS UDP audio port
+            .local_port = 0,                // Auto-assign local port
+            .buffer_size = 2048,
+            .packet_size_ms = 20,           // 20ms packets (320 samples)
+            .enable_compression = false     // Raw PCM for minimal latency
+        };
+        
+        enhanced_udp_audio_get_default_config(&basic_udp_config, &udp_config);
+        
+        // Configure for HowdyTTS integration
+        udp_config.enable_vad_transmission = true;
+        udp_config.enable_vad_optimization = true;
+        udp_config.enable_silence_suppression = true;
+        udp_config.silence_packet_interval_ms = 100;    // 100ms during silence
+        udp_config.confidence_reporting_threshold = 0;   // Report all confidence levels
+        
+        esp_err_t udp_ret = enhanced_udp_audio_init(&udp_config);
+        if (udp_ret != ESP_OK) {
+            ESP_LOGW(TAG, "Enhanced UDP audio init failed: %s", esp_err_to_name(udp_ret));
+            s_app_state.vad_initialized = false;  // Fallback to basic mode
+        } else {
+            ESP_LOGI(TAG, "✅ Enhanced UDP audio streaming initialized");
+        }
+    }
     
     // Configure HowdyTTS integration
     howdytts_integration_config_t howdytts_config = {
@@ -310,7 +590,62 @@ static esp_err_t howdytts_integration_init_app(void)
     }
     
     ESP_LOGI(TAG, "✅ HowdyTTS integration initialized successfully");
+    ESP_LOGI(TAG, "🎯 VAD Mode: %s", s_app_state.vad_initialized ? "Enhanced Edge VAD" : "Basic Audio");
+    ESP_LOGI(TAG, "🎤 Wake Word: %s", s_app_state.wake_word_initialized ? "Hey Howdy Detection Active" : "Disabled");
+    
+    // Note: VAD feedback client will be initialized after WiFi connection
+    // when we know the HowdyTTS server IP address
+    ESP_LOGI(TAG, "📡 VAD feedback client will connect after server discovery");
+    
     return ESP_OK;
+}
+
+// Initialize VAD feedback client (called after server discovery)
+esp_err_t init_vad_feedback_client(const char *server_ip)
+{
+    if (!s_app_state.wake_word_initialized) {
+        ESP_LOGW(TAG, "Skipping VAD feedback - wake word detection not available");
+        return ESP_OK;
+    }
+    
+    ESP_LOGI(TAG, "🔧 Initializing VAD feedback client for server: %s", server_ip);
+    
+    // Get default VAD feedback configuration
+    vad_feedback_config_t feedback_config;
+    vad_feedback_get_default_config(server_ip, "esp32p4-howdyscreen-001", &feedback_config);
+    
+    // Customize configuration
+    strncpy(feedback_config.device_name, "ESP32-P4 HowdyScreen", sizeof(feedback_config.device_name) - 1);
+    strncpy(feedback_config.room, "office", sizeof(feedback_config.room) - 1);
+    feedback_config.enable_wake_word_feedback = true;
+    feedback_config.enable_threshold_adaptation = true;
+    feedback_config.enable_training_mode = false;  // Start in normal mode
+    feedback_config.auto_reconnect = true;
+    feedback_config.keepalive_interval_ms = 30000;
+    
+    // Initialize VAD feedback client
+    s_app_state.vad_feedback_handle = vad_feedback_init(&feedback_config,
+                                                       vad_feedback_event_callback,
+                                                       NULL);
+    
+    if (s_app_state.vad_feedback_handle) {
+        ESP_LOGI(TAG, "✅ VAD feedback client initialized");
+        
+        // Connect to server
+        esp_err_t ret = vad_feedback_connect(s_app_state.vad_feedback_handle);
+        if (ret == ESP_OK) {
+            s_app_state.vad_feedback_connected = true;
+            ESP_LOGI(TAG, "✅ VAD feedback client connected to %s:8001", server_ip);
+        } else {
+            ESP_LOGW(TAG, "⚠️ VAD feedback connection failed: %s", esp_err_to_name(ret));
+            s_app_state.vad_feedback_connected = false;
+        }
+        
+        return ESP_OK;
+    } else {
+        ESP_LOGE(TAG, "❌ Failed to initialize VAD feedback client");
+        return ESP_FAIL;
+    }
 }
 
 // Statistics reporting task
@@ -319,8 +654,8 @@ static void stats_task(void *pvParameters)
     TickType_t last_wake_time = xTaskGetTickCount();
     
     while (true) {
-        // Update every 5 seconds
-        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(5000));
+        // Update every 10 seconds to reduce system load
+        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(10000));
         
         if (s_app_state.howdytts_connected) {
             // Get audio statistics
@@ -328,6 +663,64 @@ static void stats_task(void *pvParameters)
             if (howdytts_get_audio_stats(&stats) == ESP_OK) {
                 ESP_LOGI(TAG, "📊 Audio Stats - Packets sent: %d, Loss rate: %.2f%%, Latency: %.1fms",
                         (int)stats.packets_sent, stats.packet_loss_rate * 100, stats.average_latency_ms);
+            }
+            
+            // Enhanced VAD statistics (reduced verbosity to prevent stack issues)
+            if (s_app_state.vad_initialized) {
+                enhanced_udp_audio_stats_t vad_stats;
+                if (enhanced_udp_audio_get_enhanced_stats(&vad_stats) == ESP_OK) {
+                    ESP_LOGI(TAG, "🎤 VAD: V:%d S:%d C:%.0f%% Sup:%d NF:%d",
+                            (int)vad_stats.voice_packets_sent,
+                            (int)vad_stats.silence_packets_sent,
+                            vad_stats.average_vad_confidence * 100,
+                            (int)vad_stats.packets_suppressed,
+                            vad_stats.current_noise_floor);
+                }
+            }
+            
+            // Wake word detection statistics
+            if (s_app_state.wake_word_initialized) {
+                esp32_p4_wake_word_stats_t wake_word_stats;
+                if (esp32_p4_wake_word_get_stats(s_app_state.wake_word_handle, &wake_word_stats) == ESP_OK) {
+                    ESP_LOGI(TAG, "🎯 WakeWord: Det:%d TP:%d FP:%d Acc:%.0f%% Thr:%d",
+                            (int)wake_word_stats.total_detections,
+                            (int)wake_word_stats.true_positives,
+                            (int)wake_word_stats.false_positives,
+                            (wake_word_stats.true_positives + wake_word_stats.false_positives > 0) ?
+                                (float)wake_word_stats.true_positives * 100 / 
+                                (wake_word_stats.true_positives + wake_word_stats.false_positives) : 0.0f,
+                            wake_word_stats.current_energy_threshold);
+                    
+                    // Send statistics to VAD feedback server periodically
+                    if (s_app_state.vad_feedback_connected) {
+                        static uint32_t last_stats_sent = 0;
+                        uint32_t now = esp_timer_get_time() / 1000;
+                        
+                        if (now - last_stats_sent > 60000) { // Send every minute
+                            enhanced_udp_audio_stats_t enhanced_stats;
+                            enhanced_udp_audio_stats_t *udp_stats = NULL;
+                            if (enhanced_udp_audio_get_enhanced_stats(&enhanced_stats) == ESP_OK) {
+                                udp_stats = &enhanced_stats;
+                            }
+                            vad_feedback_send_statistics(s_app_state.vad_feedback_handle,
+                                                        &wake_word_stats,
+                                                        udp_stats);
+                            last_stats_sent = now;
+                        }
+                    }
+                }
+            }
+            
+            // VAD feedback client statistics
+            if (s_app_state.vad_feedback_connected) {
+                vad_feedback_stats_t feedback_stats;
+                if (vad_feedback_get_stats(s_app_state.vad_feedback_handle, &feedback_stats) == ESP_OK) {
+                    ESP_LOGI(TAG, "📡 Feedback: Sent:%d Recv:%d Val:%d Acc:%.0f%%",
+                            (int)feedback_stats.messages_sent,
+                            (int)feedback_stats.messages_received,
+                            (int)feedback_stats.wake_word_validations,
+                            feedback_stats.validation_accuracy * 100);
+                }
             }
             
             // System health
@@ -380,8 +773,8 @@ void app_main(void)
     }
     
     // Start monitoring tasks
-    xTaskCreate(stats_task, "stats_task", 3072, NULL, 2, NULL);
-    xTaskCreate(wifi_monitor_task, "wifi_monitor", 2048, NULL, 1, NULL);
+    xTaskCreate(stats_task, "stats_task", 4096, NULL, 2, NULL);
+    xTaskCreate(wifi_monitor_task, "wifi_monitor", 4096, NULL, 1, NULL);
     
     ESP_LOGI(TAG, "🎯 Phase 6 initialization complete!");
     ESP_LOGI(TAG, "");
@@ -391,6 +784,12 @@ void app_main(void)
     ESP_LOGI(TAG, "Audio: 16kHz/16-bit PCM, 20ms frames");
     ESP_LOGI(TAG, "Memory: <10KB audio streaming overhead");
     ESP_LOGI(TAG, "UI: Touch-to-talk with visual feedback");
+    ESP_LOGI(TAG, "");
+    ESP_LOGI(TAG, "=== Option C: Bidirectional VAD ===");
+    ESP_LOGI(TAG, "Wake Word: %s", s_app_state.wake_word_initialized ? "Hey Howdy Detection" : "Disabled");
+    ESP_LOGI(TAG, "Enhanced VAD: %s", s_app_state.vad_initialized ? "Edge Processing" : "Basic");
+    ESP_LOGI(TAG, "VAD Feedback: WebSocket client (connects after discovery)");
+    ESP_LOGI(TAG, "Adaptive Learning: Server-guided threshold adjustment");
     ESP_LOGI(TAG, "=====================================");
     ESP_LOGI(TAG, "");
     

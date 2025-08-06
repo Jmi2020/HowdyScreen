@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS 
         "src/websocket_client.c"
+        "src/esp32_p4_vad_feedback.c"
         "src/howdytts_protocol.c"
         "src/howdytts_http_server.c"
         "src/howdytts_udp_stream.c"
