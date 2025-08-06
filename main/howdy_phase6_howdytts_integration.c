@@ -39,6 +39,7 @@
 #include "enhanced_udp_audio.h"
 #include "esp32_p4_wake_word.h"
 #include "esp32_p4_vad_feedback.h"
+#include "tts_audio_handler.h"
 
 static const char *TAG = "HowdyPhase6";
 
@@ -258,14 +259,92 @@ static esp_err_t howdytts_audio_callback(const int16_t *audio_data, size_t sampl
     return ret;
 }
 
+// TTS Audio event callback
+static void tts_audio_event_callback(tts_audio_event_t event, const void *data, size_t data_len, void *user_data)
+{
+    switch (event) {
+        case TTS_AUDIO_EVENT_STARTED:
+            ESP_LOGI(TAG, "🔊 TTS playback started");
+            ui_manager_set_state(UI_STATE_SPEAKING);
+            ui_manager_update_status("Playing TTS response...");
+            break;
+            
+        case TTS_AUDIO_EVENT_FINISHED:
+            ESP_LOGI(TAG, "✅ TTS playback finished");
+            ui_manager_set_state(UI_STATE_LISTENING);
+            ui_manager_update_status("Ready for voice input");
+            break;
+            
+        case TTS_AUDIO_EVENT_CHUNK_PLAYED:
+            ESP_LOGV(TAG, "TTS chunk played (%zu bytes)", data_len);
+            break;
+            
+        case TTS_AUDIO_EVENT_BUFFER_EMPTY:
+            ESP_LOGV(TAG, "TTS buffer empty - ready for more data");
+            break;
+            
+        case TTS_AUDIO_EVENT_ERROR:
+            ESP_LOGE(TAG, "❌ TTS playback error");
+            ui_manager_set_state(UI_STATE_ERROR);
+            ui_manager_update_status("TTS playback error");
+            break;
+            
+        default:
+            ESP_LOGD(TAG, "Unknown TTS audio event: %d", event);
+            break;
+    }
+}
+
 static esp_err_t howdytts_tts_callback(const int16_t *tts_audio, size_t samples, void *user_data)
 {
-    ESP_LOGI(TAG, "TTS callback: received %d samples from HowdyTTS server", (int)samples);
+    ESP_LOGI(TAG, "🔊 TTS callback: received %zu samples from HowdyTTS server", samples);
     
-    // Play TTS audio through speaker
-    // TODO: Integrate with audio processor for speaker output
+    // Convert samples to bytes (16-bit samples = 2 bytes each)
+    size_t audio_bytes = samples * sizeof(int16_t);
     
+    // Play TTS audio through TTS audio handler
+    esp_err_t ret = tts_audio_play_chunk((const uint8_t*)tts_audio, audio_bytes);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to play TTS audio chunk: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    ESP_LOGD(TAG, "TTS audio chunk queued successfully (%zu bytes)", audio_bytes);
     return ESP_OK;
+}
+
+// WebSocket TTS Audio callback (bridges WebSocket to TTS audio handler)
+static void howdytts_tts_audio_callback(const vad_feedback_tts_session_t *session,
+                                       const int16_t *audio_data,
+                                       size_t sample_count,
+                                       void *user_data)
+{
+    ESP_LOGI(TAG, "🎵 WebSocket TTS audio callback: session=%s, samples=%zu", 
+            session->session_id, sample_count);
+    
+    // Convert samples to bytes (16-bit samples = 2 bytes each)
+    size_t audio_bytes = sample_count * sizeof(int16_t);
+    
+    // Check if TTS is ready for new chunks
+    if (!tts_audio_is_playing()) {
+        // Start TTS playback session
+        esp_err_t start_ret = tts_audio_start_playback();
+        if (start_ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start TTS playback: %s", esp_err_to_name(start_ret));
+            return;
+        }
+        
+        ESP_LOGI(TAG, "🎶 Started TTS playback session: %s", session->session_id);
+    }
+    
+    // Queue TTS audio chunk for playback
+    esp_err_t ret = tts_audio_play_chunk((const uint8_t*)audio_data, audio_bytes);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to queue TTS audio chunk: %s", esp_err_to_name(ret));
+        return;
+    }
+    
+    ESP_LOGD(TAG, "TTS audio chunk from WebSocket queued successfully (%zu bytes)", audio_bytes);
 }
 
 static void howdytts_event_callback(const howdytts_event_data_t *event, void *user_data)
@@ -593,6 +672,28 @@ static esp_err_t howdytts_integration_init_app(void)
     ESP_LOGI(TAG, "🎯 VAD Mode: %s", s_app_state.vad_initialized ? "Enhanced Edge VAD" : "Basic Audio");
     ESP_LOGI(TAG, "🎤 Wake Word: %s", s_app_state.wake_word_initialized ? "Hey Howdy Detection Active" : "Disabled");
     
+    // Initialize TTS Audio Handler for speaker output
+    ESP_LOGI(TAG, "🔊 Initializing TTS Audio Handler");
+    tts_audio_config_t tts_config = TTS_AUDIO_DEFAULT_CONFIG();
+    
+    // Customize TTS configuration for ESP32-P4 HowdyScreen
+    tts_config.sample_rate = 16000;        // Match HowdyTTS output
+    tts_config.channels = 1;               // Mono audio
+    tts_config.bits_per_sample = 16;       // 16-bit PCM
+    tts_config.volume = 0.8f;              // 80% volume
+    tts_config.buffer_size = 8192;         // Larger buffer for smooth playback
+    tts_config.buffer_timeout_ms = 1000;   // 1 second timeout
+    
+    esp_err_t tts_ret = tts_audio_init(&tts_config, tts_audio_event_callback, NULL);
+    if (tts_ret == ESP_OK) {
+        ESP_LOGI(TAG, "✅ TTS Audio Handler initialized");
+        ESP_LOGI(TAG, "🔊 Audio Format: %luHz, %dch, %d-bit, %.0f%% volume",
+                tts_config.sample_rate, tts_config.channels, 
+                tts_config.bits_per_sample, tts_config.volume * 100);
+    } else {
+        ESP_LOGW(TAG, "⚠️ TTS Audio Handler initialization failed: %s", esp_err_to_name(tts_ret));
+    }
+    
     // Note: VAD feedback client will be initialized after WiFi connection
     // when we know the HowdyTTS server IP address
     ESP_LOGI(TAG, "📡 VAD feedback client will connect after server discovery");
@@ -630,6 +731,16 @@ esp_err_t init_vad_feedback_client(const char *server_ip)
     
     if (s_app_state.vad_feedback_handle) {
         ESP_LOGI(TAG, "✅ VAD feedback client initialized");
+        
+        // Set TTS audio callback for receiving server TTS responses
+        esp_err_t tts_cb_ret = vad_feedback_set_tts_audio_callback(s_app_state.vad_feedback_handle,
+                                                                   howdytts_tts_audio_callback,
+                                                                   NULL);
+        if (tts_cb_ret == ESP_OK) {
+            ESP_LOGI(TAG, "🔊 TTS audio callback registered for WebSocket streaming");
+        } else {
+            ESP_LOGW(TAG, "⚠️ Failed to register TTS audio callback: %s", esp_err_to_name(tts_cb_ret));
+        }
         
         // Connect to server
         esp_err_t ret = vad_feedback_connect(s_app_state.vad_feedback_handle);

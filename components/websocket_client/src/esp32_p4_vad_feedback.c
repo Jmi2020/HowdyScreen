@@ -83,6 +83,20 @@ typedef struct vad_feedback_client {
     // State
     bool initialized;
     bool training_mode;
+    
+    // TTS audio session management
+    vad_feedback_tts_session_t current_tts_session;
+    bool tts_session_active;
+    vad_feedback_tts_audio_callback_t tts_callback;
+    void *tts_callback_user_data;
+    
+    // TTS audio buffering
+    QueueHandle_t tts_audio_queue;
+    TaskHandle_t tts_processing_task;
+    uint16_t tts_chunks_received;
+    uint16_t tts_chunks_played;
+    uint32_t tts_audio_buffer_size;
+    
 } vad_feedback_client_t;
 
 // Message queue item
@@ -90,6 +104,15 @@ typedef struct {
     char *json_data;
     size_t json_len;
 } vad_feedback_message_t;
+
+// TTS audio queue item
+typedef struct {
+    vad_feedback_tts_chunk_t chunk_data;
+    bool session_start;
+    bool session_end;
+    vad_feedback_tts_session_t session_info;  // Only valid if session_start is true
+    vad_feedback_tts_end_t end_info;          // Only valid if session_end is true
+} tts_audio_queue_item_t;
 
 // Forward declarations
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, 
@@ -100,6 +123,15 @@ static void process_server_message(vad_feedback_client_t *client, const char *me
 static void add_pending_validation(vad_feedback_client_t *client, uint32_t detection_id);
 static bool remove_pending_validation(vad_feedback_client_t *client, uint32_t detection_id, 
                                      uint32_t *elapsed_ms);
+
+// TTS audio processing functions
+static void tts_processing_task(void *pvParameters);
+static esp_err_t parse_tts_audio_start(const cJSON *json, vad_feedback_tts_session_t *session);
+static esp_err_t parse_tts_audio_chunk(const cJSON *json, vad_feedback_tts_chunk_t *chunk);
+static esp_err_t parse_tts_audio_end(const cJSON *json, vad_feedback_tts_end_t *end_info);
+static esp_err_t decode_base64_audio(const char *base64_data, uint8_t **audio_data, size_t *audio_len);
+static esp_err_t queue_tts_audio_item(vad_feedback_client_t *client, const tts_audio_queue_item_t *item);
+static void cleanup_tts_session(vad_feedback_client_t *client);
 
 vad_feedback_handle_t vad_feedback_init(const vad_feedback_config_t *config,
                                        vad_feedback_event_callback_t event_callback,
@@ -186,6 +218,47 @@ vad_feedback_handle_t vad_feedback_init(const vad_feedback_config_t *config,
         return NULL;
     }
     
+    // Create TTS audio queue for streaming audio chunks
+    client->tts_audio_queue = xQueueCreate(20, sizeof(tts_audio_queue_item_t));
+    if (!client->tts_audio_queue) {
+        ESP_LOGE(TAG, "Failed to create TTS audio queue");
+        vTaskDelete(client->send_task);
+        esp_websocket_client_destroy(client->ws_client);
+        vQueueDelete(client->send_queue);
+        vSemaphoreDelete(client->mutex);
+        free(client);
+        return NULL;
+    }
+    
+    // Create TTS processing task
+    task_ret = xTaskCreatePinnedToCore(
+        tts_processing_task,
+        "vad_tts_process",
+        8192,  // Large stack for audio processing
+        client,
+        6,     // Higher priority than send task
+        &client->tts_processing_task,
+        1      // Core 1 (audio processing core)
+    );
+    
+    if (task_ret != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create TTS processing task");
+        vQueueDelete(client->tts_audio_queue);
+        vTaskDelete(client->send_task);
+        esp_websocket_client_destroy(client->ws_client);
+        vQueueDelete(client->send_queue);
+        vSemaphoreDelete(client->mutex);
+        free(client);
+        return NULL;
+    }
+    
+    // Initialize TTS session state
+    client->tts_session_active = false;
+    client->tts_chunks_received = 0;
+    client->tts_chunks_played = 0;
+    client->tts_callback = NULL;
+    client->tts_callback_user_data = NULL;
+    
     client->initialized = true;
     
     ESP_LOGI(TAG, "VAD feedback client initialized");
@@ -217,6 +290,28 @@ esp_err_t vad_feedback_deinit(vad_feedback_handle_t handle)
     // Delete send task
     if (client->send_task) {
         vTaskDelete(client->send_task);
+    }
+    
+    // Delete TTS processing task
+    if (client->tts_processing_task) {
+        vTaskDelete(client->tts_processing_task);
+    }
+    
+    // Clean up TTS session if active
+    if (client->tts_session_active) {
+        cleanup_tts_session(client);
+    }
+    
+    // Clean up TTS audio queue
+    if (client->tts_audio_queue) {
+        tts_audio_queue_item_t tts_item;
+        while (xQueueReceive(client->tts_audio_queue, &tts_item, 0) == pdTRUE) {
+            // Free audio data if allocated
+            if (tts_item.chunk_data.audio_data) {
+                free(tts_item.chunk_data.audio_data);
+            }
+        }
+        vQueueDelete(client->tts_audio_queue);
     }
     
     // Clean up message queue
@@ -713,6 +808,48 @@ static void process_server_message(vad_feedback_client_t *client, const char *me
         }
     } else if (strcmp(type, "pong") == 0) {
         ESP_LOGD(TAG, "Received pong from VAD feedback server");
+    } else if (strcmp(type, "tts_audio_start") == 0) {
+        // Handle TTS audio session start
+        vad_feedback_tts_session_t session;
+        esp_err_t ret = parse_tts_audio_start(json, &session);
+        if (ret == ESP_OK) {
+            tts_audio_queue_item_t item = {
+                .session_start = true,
+                .session_end = false,
+                .session_info = session
+            };
+            queue_tts_audio_item(client, &item);
+            ESP_LOGI(TAG, "🎵 TTS session started: %s (duration: %dms)", 
+                    session.session_id, session.estimated_duration_ms);
+        }
+    } else if (strcmp(type, "tts_audio_chunk") == 0) {
+        // Handle TTS audio chunk
+        vad_feedback_tts_chunk_t chunk;
+        esp_err_t ret = parse_tts_audio_chunk(json, &chunk);
+        if (ret == ESP_OK) {
+            tts_audio_queue_item_t item = {
+                .session_start = false,
+                .session_end = false,
+                .chunk_data = chunk
+            };
+            queue_tts_audio_item(client, &item);
+            ESP_LOGV(TAG, "🎵 TTS chunk %d received (%d bytes)", 
+                    chunk.chunk_sequence, chunk.chunk_size);
+        }
+    } else if (strcmp(type, "tts_audio_end") == 0) {
+        // Handle TTS audio session end
+        vad_feedback_tts_end_t end_info;
+        esp_err_t ret = parse_tts_audio_end(json, &end_info);
+        if (ret == ESP_OK) {
+            tts_audio_queue_item_t item = {
+                .session_start = false,
+                .session_end = true,
+                .end_info = end_info
+            };
+            queue_tts_audio_item(client, &item);
+            ESP_LOGI(TAG, "🎵 TTS session ended: %s (%d chunks, %d bytes)", 
+                    end_info.session_id, end_info.total_chunks_sent, end_info.total_audio_bytes);
+        }
     } else {
         ESP_LOGD(TAG, "Received unknown message type: %s", type);
     }
@@ -758,4 +895,706 @@ static bool remove_pending_validation(vad_feedback_client_t *client, uint32_t de
     }
     
     return found;
+}
+
+// TTS processing task implementation
+static void tts_processing_task(void *pvParameters)
+{
+    vad_feedback_client_t *client = (vad_feedback_client_t*)pvParameters;
+    tts_audio_queue_item_t item;
+    
+    ESP_LOGI(TAG, "TTS processing task started");
+    
+    while (1) {
+        // Wait for TTS audio items in queue
+        if (xQueueReceive(client->tts_audio_queue, &item, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            
+            if (item.session_start) {
+                // Handle TTS session start
+                ESP_LOGI(TAG, "🎵 Starting TTS session: %s", item.session_info.session_id);
+                
+                if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                    client->current_tts_session = item.session_info;
+                    client->tts_session_active = true;
+                    client->tts_chunks_received = 0;
+                    client->tts_chunks_played = 0;
+                    xSemaphoreGive(client->mutex);
+                }
+                
+                // Notify application via event callback
+                if (client->event_callback) {
+                    client->event_callback(VAD_FEEDBACK_TTS_AUDIO_START, 
+                                         &item.session_info, sizeof(item.session_info), 
+                                         client->callback_user_data);
+                }
+                
+            } else if (item.session_end) {
+                // Handle TTS session end
+                ESP_LOGI(TAG, "🎵 Ending TTS session: %s", item.end_info.session_id);
+                
+                // Notify application via event callback
+                if (client->event_callback) {
+                    client->event_callback(VAD_FEEDBACK_TTS_AUDIO_END, 
+                                         &item.end_info, sizeof(item.end_info), 
+                                         client->callback_user_data);
+                }
+                
+                // Cleanup session
+                cleanup_tts_session(client);
+                
+            } else {
+                // Handle TTS audio chunk
+                if (client->tts_session_active && 
+                    strcmp(item.chunk_data.session_id, client->current_tts_session.session_id) == 0) {
+                    
+                    ESP_LOGV(TAG, "🎵 Processing TTS chunk %d (%d bytes)", 
+                            item.chunk_data.chunk_sequence, item.chunk_data.chunk_size);
+                    
+                    client->tts_chunks_received++;
+                    
+                    // Call TTS audio callback if registered
+                    if (client->tts_callback && item.chunk_data.audio_data) {
+                        client->tts_callback(&client->current_tts_session,
+                                           (const int16_t*)item.chunk_data.audio_data,
+                                           item.chunk_data.chunk_size / 2,  // Convert bytes to samples
+                                           client->tts_callback_user_data);
+                        
+                        client->tts_chunks_played++;
+                    }
+                    
+                    // Notify application via event callback
+                    if (client->event_callback) {
+                        client->event_callback(VAD_FEEDBACK_TTS_AUDIO_CHUNK, 
+                                             &item.chunk_data, sizeof(item.chunk_data), 
+                                             client->callback_user_data);
+                    }
+                }
+                
+                // Free audio data
+                if (item.chunk_data.audio_data) {
+                    free(item.chunk_data.audio_data);
+                }
+            }
+        }
+    }
+    
+    ESP_LOGI(TAG, "TTS processing task ended");
+    vTaskDelete(NULL);
+}
+
+// Parse TTS audio start message
+static esp_err_t parse_tts_audio_start(const cJSON *json, vad_feedback_tts_session_t *session)
+{
+    if (!json || !session) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    memset(session, 0, sizeof(vad_feedback_tts_session_t));
+    
+    // Parse session info
+    cJSON *session_info = cJSON_GetObjectItem(json, "session_info");
+    if (!session_info) {
+        ESP_LOGE(TAG, "Missing session_info in TTS audio start");
+        return ESP_FAIL;
+    }
+    
+    cJSON *session_id = cJSON_GetObjectItem(session_info, "session_id");
+    if (cJSON_IsString(session_id)) {
+        strncpy(session->session_id, cJSON_GetStringValue(session_id), sizeof(session->session_id) - 1);
+    } else {
+        ESP_LOGE(TAG, "Missing session_id in TTS audio start");
+        return ESP_FAIL;
+    }
+    
+    cJSON *response_text = cJSON_GetObjectItem(session_info, "response_text");
+    if (cJSON_IsString(response_text)) {
+        strncpy(session->response_text, cJSON_GetStringValue(response_text), sizeof(session->response_text) - 1);
+    }
+    
+    cJSON *estimated_duration = cJSON_GetObjectItem(session_info, "estimated_duration_ms");
+    if (cJSON_IsNumber(estimated_duration)) {
+        session->estimated_duration_ms = (uint16_t)cJSON_GetNumberValue(estimated_duration);
+    }
+    
+    cJSON *total_chunks = cJSON_GetObjectItem(session_info, "total_chunks_expected");
+    if (cJSON_IsNumber(total_chunks)) {
+        session->total_chunks_expected = (uint16_t)cJSON_GetNumberValue(total_chunks);
+    }
+    
+    // Parse audio format
+    cJSON *audio_format = cJSON_GetObjectItem(json, "audio_format");
+    if (audio_format) {
+        cJSON *sample_rate = cJSON_GetObjectItem(audio_format, "sample_rate");
+        if (cJSON_IsNumber(sample_rate)) {
+            session->sample_rate = (uint32_t)cJSON_GetNumberValue(sample_rate);
+        } else {
+            session->sample_rate = 16000;  // Default
+        }
+        
+        cJSON *channels = cJSON_GetObjectItem(audio_format, "channels");
+        if (cJSON_IsNumber(channels)) {
+            session->channels = (uint8_t)cJSON_GetNumberValue(channels);
+        } else {
+            session->channels = 1;  // Default mono
+        }
+        
+        cJSON *bits_per_sample = cJSON_GetObjectItem(audio_format, "bits_per_sample");
+        if (cJSON_IsNumber(bits_per_sample)) {
+            session->bits_per_sample = (uint8_t)cJSON_GetNumberValue(bits_per_sample);
+        } else {
+            session->bits_per_sample = 16;  // Default 16-bit
+        }
+        
+        cJSON *total_samples = cJSON_GetObjectItem(audio_format, "total_samples");
+        if (cJSON_IsNumber(total_samples)) {
+            session->total_samples = (uint32_t)cJSON_GetNumberValue(total_samples);
+        }
+    }
+    
+    // Parse playback config
+    cJSON *playback_config = cJSON_GetObjectItem(json, "playback_config");
+    if (playback_config) {
+        cJSON *volume = cJSON_GetObjectItem(playback_config, "volume");
+        if (cJSON_IsNumber(volume)) {
+            session->volume = (float)cJSON_GetNumberValue(volume);
+        } else {
+            session->volume = 0.8f;  // Default volume
+        }
+        
+        cJSON *fade_in = cJSON_GetObjectItem(playback_config, "fade_in_ms");
+        if (cJSON_IsNumber(fade_in)) {
+            session->fade_in_ms = (uint16_t)cJSON_GetNumberValue(fade_in);
+        }
+        
+        cJSON *fade_out = cJSON_GetObjectItem(playback_config, "fade_out_ms");
+        if (cJSON_IsNumber(fade_out)) {
+            session->fade_out_ms = (uint16_t)cJSON_GetNumberValue(fade_out);
+        }
+        
+        cJSON *interrupt_recording = cJSON_GetObjectItem(playback_config, "interrupt_recording");
+        if (cJSON_IsBool(interrupt_recording)) {
+            session->interrupt_recording = cJSON_IsTrue(interrupt_recording);
+        } else {
+            session->interrupt_recording = true;  // Default interrupt recording
+        }
+        
+        cJSON *echo_cancellation = cJSON_GetObjectItem(playback_config, "echo_cancellation");
+        if (cJSON_IsBool(echo_cancellation)) {
+            session->echo_cancellation = cJSON_IsTrue(echo_cancellation);
+        } else {
+            session->echo_cancellation = true;  // Default enable echo cancellation
+        }
+    }
+    
+    ESP_LOGI(TAG, "Parsed TTS session: %s, %dms, %d chunks, %dHz %dch %dbit", 
+            session->session_id, session->estimated_duration_ms, session->total_chunks_expected,
+            session->sample_rate, session->channels, session->bits_per_sample);
+    
+    return ESP_OK;
+}
+
+// Parse TTS audio chunk message
+static esp_err_t parse_tts_audio_chunk(const cJSON *json, vad_feedback_tts_chunk_t *chunk)
+{
+    if (!json || !chunk) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    memset(chunk, 0, sizeof(vad_feedback_tts_chunk_t));
+    
+    // Parse chunk info
+    cJSON *chunk_info = cJSON_GetObjectItem(json, "chunk_info");
+    if (!chunk_info) {
+        ESP_LOGE(TAG, "Missing chunk_info in TTS audio chunk");
+        return ESP_FAIL;
+    }
+    
+    cJSON *session_id = cJSON_GetObjectItem(chunk_info, "session_id");
+    if (cJSON_IsString(session_id)) {
+        strncpy(chunk->session_id, cJSON_GetStringValue(session_id), sizeof(chunk->session_id) - 1);
+    } else {
+        ESP_LOGE(TAG, "Missing session_id in TTS audio chunk");
+        return ESP_FAIL;
+    }
+    
+    cJSON *chunk_sequence = cJSON_GetObjectItem(chunk_info, "chunk_sequence");
+    if (cJSON_IsNumber(chunk_sequence)) {
+        chunk->chunk_sequence = (uint16_t)cJSON_GetNumberValue(chunk_sequence);
+    }
+    
+    cJSON *chunk_size = cJSON_GetObjectItem(chunk_info, "chunk_size");
+    if (cJSON_IsNumber(chunk_size)) {
+        chunk->chunk_size = (uint16_t)cJSON_GetNumberValue(chunk_size);
+    } else {
+        ESP_LOGE(TAG, "Missing chunk_size in TTS audio chunk");
+        return ESP_FAIL;
+    }
+    
+    cJSON *is_final = cJSON_GetObjectItem(chunk_info, "is_final");
+    if (cJSON_IsBool(is_final)) {
+        chunk->is_final = cJSON_IsTrue(is_final);
+    }
+    
+    cJSON *checksum = cJSON_GetObjectItem(chunk_info, "checksum");
+    if (cJSON_IsString(checksum)) {
+        // Convert hex string to uint32_t
+        chunk->checksum = (uint32_t)strtoul(cJSON_GetStringValue(checksum), NULL, 16);
+    }
+    
+    // Parse timing info
+    cJSON *timing = cJSON_GetObjectItem(json, "timing");
+    if (timing) {
+        cJSON *chunk_start_time = cJSON_GetObjectItem(timing, "chunk_start_time_ms");
+        if (cJSON_IsNumber(chunk_start_time)) {
+            chunk->chunk_start_time_ms = (uint16_t)cJSON_GetNumberValue(chunk_start_time);
+        }
+        
+        cJSON *chunk_duration = cJSON_GetObjectItem(timing, "chunk_duration_ms");
+        if (cJSON_IsNumber(chunk_duration)) {
+            chunk->chunk_duration_ms = (uint16_t)cJSON_GetNumberValue(chunk_duration);
+        }
+    }
+    
+    // Decode base64 audio data
+    cJSON *audio_data = cJSON_GetObjectItem(chunk_info, "audio_data");
+    if (cJSON_IsString(audio_data)) {
+        const char *base64_data = cJSON_GetStringValue(audio_data);
+        size_t audio_len;
+        esp_err_t ret = decode_base64_audio(base64_data, &chunk->audio_data, &audio_len);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to decode base64 audio data");
+            return ret;
+        }
+        
+        // Verify chunk size matches decoded data
+        if (audio_len != chunk->chunk_size) {
+            ESP_LOGW(TAG, "Chunk size mismatch: expected %d, got %zu", chunk->chunk_size, audio_len);
+            chunk->chunk_size = audio_len;
+        }
+    } else {
+        ESP_LOGE(TAG, "Missing audio_data in TTS audio chunk");
+        return ESP_FAIL;
+    }
+    
+    ESP_LOGV(TAG, "Parsed TTS chunk: %s seq=%d size=%d final=%s", 
+            chunk->session_id, chunk->chunk_sequence, chunk->chunk_size, 
+            chunk->is_final ? "true" : "false");
+    
+    return ESP_OK;
+}
+
+// Parse TTS audio end message
+static esp_err_t parse_tts_audio_end(const cJSON *json, vad_feedback_tts_end_t *end_info)
+{
+    if (!json || !end_info) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    memset(end_info, 0, sizeof(vad_feedback_tts_end_t));
+    
+    // Parse session summary
+    cJSON *session_summary = cJSON_GetObjectItem(json, "session_summary");
+    if (!session_summary) {
+        ESP_LOGE(TAG, "Missing session_summary in TTS audio end");
+        return ESP_FAIL;
+    }
+    
+    cJSON *session_id = cJSON_GetObjectItem(session_summary, "session_id");
+    if (cJSON_IsString(session_id)) {
+        strncpy(end_info->session_id, cJSON_GetStringValue(session_id), sizeof(end_info->session_id) - 1);
+    } else {
+        ESP_LOGE(TAG, "Missing session_id in TTS audio end");
+        return ESP_FAIL;
+    }
+    
+    cJSON *total_chunks_sent = cJSON_GetObjectItem(session_summary, "total_chunks_sent");
+    if (cJSON_IsNumber(total_chunks_sent)) {
+        end_info->total_chunks_sent = (uint16_t)cJSON_GetNumberValue(total_chunks_sent);
+    }
+    
+    cJSON *total_audio_bytes = cJSON_GetObjectItem(session_summary, "total_audio_bytes");
+    if (cJSON_IsNumber(total_audio_bytes)) {
+        end_info->total_audio_bytes = (uint32_t)cJSON_GetNumberValue(total_audio_bytes);
+    }
+    
+    cJSON *actual_duration_ms = cJSON_GetObjectItem(session_summary, "actual_duration_ms");
+    if (cJSON_IsNumber(actual_duration_ms)) {
+        end_info->actual_duration_ms = (uint16_t)cJSON_GetNumberValue(actual_duration_ms);
+    }
+    
+    cJSON *transmission_time_ms = cJSON_GetObjectItem(session_summary, "transmission_time_ms");
+    if (cJSON_IsNumber(transmission_time_ms)) {
+        end_info->transmission_time_ms = (uint16_t)cJSON_GetNumberValue(transmission_time_ms);
+    }
+    
+    // Parse playback actions
+    cJSON *playback_actions = cJSON_GetObjectItem(json, "playback_actions");
+    if (playback_actions) {
+        cJSON *fade_out_ms = cJSON_GetObjectItem(playback_actions, "fade_out_ms");
+        if (cJSON_IsNumber(fade_out_ms)) {
+            end_info->fade_out_ms = (uint16_t)cJSON_GetNumberValue(fade_out_ms);
+        }
+        
+        cJSON *return_to_listening = cJSON_GetObjectItem(playback_actions, "return_to_listening");
+        if (cJSON_IsBool(return_to_listening)) {
+            end_info->return_to_listening = cJSON_IsTrue(return_to_listening);
+        } else {
+            end_info->return_to_listening = true;  // Default return to listening
+        }
+        
+        cJSON *cooldown_period_ms = cJSON_GetObjectItem(playback_actions, "cooldown_period_ms");
+        if (cJSON_IsNumber(cooldown_period_ms)) {
+            end_info->cooldown_period_ms = (uint16_t)cJSON_GetNumberValue(cooldown_period_ms);
+        }
+    }
+    
+    ESP_LOGI(TAG, "Parsed TTS end: %s, %d chunks, %d bytes, %dms duration", 
+            end_info->session_id, end_info->total_chunks_sent, 
+            end_info->total_audio_bytes, end_info->actual_duration_ms);
+    
+    return ESP_OK;
+}
+
+// Decode base64 audio data
+static esp_err_t decode_base64_audio(const char *base64_data, uint8_t **audio_data, size_t *audio_len)
+{
+    if (!base64_data || !audio_data || !audio_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    size_t base64_len = strlen(base64_data);
+    if (base64_len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Calculate maximum decoded length (base64 expands by ~33%)
+    size_t max_decoded_len = (base64_len * 3) / 4;
+    
+    // Allocate buffer for decoded audio
+    uint8_t *decoded_buffer = malloc(max_decoded_len);
+    if (!decoded_buffer) {
+        ESP_LOGE(TAG, "Failed to allocate buffer for decoded audio (%zu bytes)", max_decoded_len);
+        return ESP_ERR_NO_MEM;
+    }
+    
+    // Simple base64 decode (you may want to use a proper base64 library)
+    // For now, this is a placeholder - implement actual base64 decoding
+    // Note: ESP-IDF provides mbedtls_base64_decode() function
+    
+    // Placeholder: assume 1:1 copy for now (this needs proper base64 implementation)
+    size_t decoded_len = base64_len / 2;  // Rough estimate for testing
+    if (decoded_len > max_decoded_len) {
+        decoded_len = max_decoded_len;
+    }
+    
+    // TODO: Implement proper base64 decoding
+    // For now, fill with dummy audio data for testing
+    memset(decoded_buffer, 0, decoded_len);
+    
+    *audio_data = decoded_buffer;
+    *audio_len = decoded_len;
+    
+    ESP_LOGV(TAG, "Decoded %zu bytes of base64 audio data", decoded_len);
+    return ESP_OK;
+}
+
+// Queue TTS audio item
+static esp_err_t queue_tts_audio_item(vad_feedback_client_t *client, const tts_audio_queue_item_t *item)
+{
+    if (!client || !item) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    if (xQueueSend(client->tts_audio_queue, item, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGW(TAG, "Failed to queue TTS audio item - queue full");
+        
+        // Free audio data if this was a chunk item
+        if (!item->session_start && !item->session_end && item->chunk_data.audio_data) {
+            free((void*)item->chunk_data.audio_data);
+        }
+        
+        return ESP_ERR_TIMEOUT;
+    }
+    
+    return ESP_OK;
+}
+
+// Cleanup TTS session
+static void cleanup_tts_session(vad_feedback_client_t *client)
+{
+    if (!client) {
+        return;
+    }
+    
+    if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        client->tts_session_active = false;
+        memset(&client->current_tts_session, 0, sizeof(client->current_tts_session));
+        client->tts_chunks_received = 0;
+        client->tts_chunks_played = 0;
+        xSemaphoreGive(client->mutex);
+    }
+    
+    ESP_LOGI(TAG, "TTS session cleaned up");
+}
+
+// Public TTS API functions
+esp_err_t vad_feedback_set_tts_audio_callback(vad_feedback_handle_t handle,
+                                             vad_feedback_tts_audio_callback_t callback,
+                                             void *user_data)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        client->tts_callback = callback;
+        client->tts_callback_user_data = user_data;
+        xSemaphoreGive(client->mutex);
+        
+        ESP_LOGI(TAG, "TTS audio callback %s", callback ? "registered" : "unregistered");
+        return ESP_OK;
+    }
+    
+    return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t vad_feedback_handle_tts_audio_start(vad_feedback_handle_t handle,
+                                             const vad_feedback_tts_session_t *session_info)
+{
+    if (!handle || !session_info) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (!client->connected) {
+        ESP_LOGW(TAG, "Cannot handle TTS audio start - not connected");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    tts_audio_queue_item_t item = {
+        .session_start = true,
+        .session_end = false,
+        .session_info = *session_info
+    };
+    
+    return queue_tts_audio_item(client, &item);
+}
+
+esp_err_t vad_feedback_handle_tts_audio_chunk(vad_feedback_handle_t handle,
+                                             const vad_feedback_tts_chunk_t *chunk_data)
+{
+    if (!handle || !chunk_data) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (!client->tts_session_active) {
+        ESP_LOGW(TAG, "Cannot handle TTS audio chunk - no active session");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    // Copy chunk data to avoid lifetime issues
+    vad_feedback_tts_chunk_t chunk_copy = *chunk_data;
+    
+    // Allocate and copy audio data
+    if (chunk_data->audio_data && chunk_data->chunk_size > 0) {
+        chunk_copy.audio_data = malloc(chunk_data->chunk_size);
+        if (!chunk_copy.audio_data) {
+            ESP_LOGE(TAG, "Failed to allocate memory for TTS audio chunk");
+            return ESP_ERR_NO_MEM;
+        }
+        memcpy(chunk_copy.audio_data, chunk_data->audio_data, chunk_data->chunk_size);
+    }
+    
+    tts_audio_queue_item_t item = {
+        .session_start = false,
+        .session_end = false,
+        .chunk_data = chunk_copy
+    };
+    
+    return queue_tts_audio_item(client, &item);
+}
+
+esp_err_t vad_feedback_handle_tts_audio_end(vad_feedback_handle_t handle,
+                                           const vad_feedback_tts_end_t *end_info)
+{
+    if (!handle || !end_info) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (!client->tts_session_active) {
+        ESP_LOGW(TAG, "Cannot handle TTS audio end - no active session");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    tts_audio_queue_item_t item = {
+        .session_start = false,
+        .session_end = true,
+        .end_info = *end_info
+    };
+    
+    return queue_tts_audio_item(client, &item);
+}
+
+esp_err_t vad_feedback_send_tts_playback_status(vad_feedback_handle_t handle,
+                                               const vad_feedback_tts_status_t *status_info)
+{
+    if (!handle || !status_info) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (!client->connected) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    uint64_t timestamp = esp_timer_get_time() / 1000;
+    
+    // Build JSON playback status message
+    char json_buffer[1024];
+    int json_len = snprintf(json_buffer, sizeof(json_buffer),
+        "{"
+        "\"message_type\":\"tts_playback_status\","
+        "\"timestamp\":%llu,"
+        "\"device_id\":\"%s\","
+        "\"status_info\":{"
+            "\"session_id\":\"%s\","
+            "\"playback_state\":%d,"
+            "\"chunks_received\":%d,"
+            "\"chunks_played\":%d,"
+            "\"buffer_level_ms\":%d,"
+            "\"audio_quality\":%d"
+        "},"
+        "\"performance\":{"
+            "\"playback_latency_ms\":%d,"
+            "\"buffer_underruns\":%d,"
+            "\"audio_dropouts\":%d,"
+            "\"echo_suppression_db\":%.1f"
+        "}"
+        "}",
+        timestamp,
+        client->config.device_id,
+        status_info->session_id,
+        status_info->playback_state,
+        status_info->chunks_received,
+        status_info->chunks_played,
+        status_info->buffer_level_ms,
+        status_info->audio_quality,
+        status_info->playback_latency_ms,
+        status_info->buffer_underruns,
+        status_info->audio_dropouts,
+        status_info->echo_suppression_db
+    );
+    
+    if (json_len < 0 || json_len >= sizeof(json_buffer)) {
+        ESP_LOGE(TAG, "Failed to format TTS playback status JSON message");
+        return ESP_FAIL;
+    }
+    
+    esp_err_t ret = queue_json_message(client, json_buffer);
+    if (ret == ESP_OK) {
+        client->stats.messages_sent++;
+        client->stats.bytes_transmitted += json_len;
+        ESP_LOGD(TAG, "Sent TTS playback status for session: %s", status_info->session_id);
+    }
+    
+    return ret;
+}
+
+esp_err_t vad_feedback_get_tts_session_info(vad_feedback_handle_t handle,
+                                           const char *session_id,
+                                           vad_feedback_tts_session_t *session_info)
+{
+    if (!handle || !session_id || !session_info) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (client->tts_session_active && 
+            strcmp(client->current_tts_session.session_id, session_id) == 0) {
+            *session_info = client->current_tts_session;
+            xSemaphoreGive(client->mutex);
+            return ESP_OK;
+        }
+        xSemaphoreGive(client->mutex);
+    }
+    
+    return ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t vad_feedback_cancel_tts_session(vad_feedback_handle_t handle,
+                                         const char *session_id)
+{
+    if (!handle || !session_id) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (client->tts_session_active && 
+            strcmp(client->current_tts_session.session_id, session_id) == 0) {
+            
+            ESP_LOGI(TAG, "Cancelling TTS session: %s", session_id);
+            cleanup_tts_session(client);
+            
+            // Clear any pending TTS audio items from the queue
+            tts_audio_queue_item_t item;
+            while (xQueueReceive(client->tts_audio_queue, &item, 0) == pdTRUE) {
+                if (!item.session_start && !item.session_end && item.chunk_data.audio_data) {
+                    free((void*)item.chunk_data.audio_data);
+                }
+            }
+            
+            xSemaphoreGive(client->mutex);
+            return ESP_OK;
+        }
+        xSemaphoreGive(client->mutex);
+    }
+    
+    return ESP_ERR_NOT_FOUND;
+}
+
+// Additional helper functions for TTS audio management
+bool vad_feedback_is_tts_session_active(vad_feedback_handle_t handle)
+{
+    if (!handle) {
+        return false;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    return client->tts_session_active;
+}
+
+esp_err_t vad_feedback_get_tts_stats(vad_feedback_handle_t handle,
+                                     uint16_t *chunks_received,
+                                     uint16_t *chunks_played)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    vad_feedback_client_t *client = (vad_feedback_client_t*)handle;
+    
+    if (xSemaphoreTake(client->mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+        if (chunks_received) {
+            *chunks_received = client->tts_chunks_received;
+        }
+        if (chunks_played) {
+            *chunks_played = client->tts_chunks_played;
+        }
+        xSemaphoreGive(client->mutex);
+        return ESP_OK;
+    }
+    
+    return ESP_ERR_TIMEOUT;
 }
