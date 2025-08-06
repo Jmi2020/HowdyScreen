@@ -26,6 +26,16 @@ typedef enum {
 
 typedef void (*audio_event_callback_t)(audio_event_t event, void *data, size_t len);
 
+// HowdyTTS Audio Integration
+typedef struct {
+    bool enable_howdytts_streaming;     // Enable HowdyTTS UDP streaming
+    bool enable_opus_encoding;          // Enable OPUS compression
+    uint8_t opus_compression_level;     // OPUS compression level (1-10)
+    bool enable_websocket_fallback;     // Enable WebSocket fallback
+    void (*howdytts_audio_callback)(const int16_t* samples, size_t count, void* user_data);
+    void *howdytts_user_data;
+} audio_howdytts_config_t;
+
 /**
  * @brief Initialize audio processor
  * 
@@ -94,6 +104,40 @@ esp_err_t audio_processor_release_buffer(void);
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t audio_processor_write_data(const uint8_t *data, size_t length);
+
+/**
+ * @brief Configure HowdyTTS audio streaming integration
+ * 
+ * @param howdy_config HowdyTTS configuration
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t audio_processor_configure_howdytts(const audio_howdytts_config_t *howdy_config);
+
+/**
+ * @brief Enable/disable dual protocol mode (WebSocket + UDP)
+ * 
+ * @param enable_dual_mode Enable dual mode operation
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t audio_processor_set_dual_protocol(bool enable_dual_mode);
+
+/**
+ * @brief Switch between WebSocket and UDP streaming protocols
+ * 
+ * @param use_websocket true for WebSocket, false for UDP
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t audio_processor_switch_protocol(bool use_websocket);
+
+/**
+ * @brief Get audio processing statistics for monitoring
+ * 
+ * @param frames_processed Total frames processed
+ * @param avg_latency_ms Average processing latency
+ * @param protocol_active Currently active protocol (0=UDP, 1=WebSocket)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t audio_processor_get_stats(uint32_t *frames_processed, float *avg_latency_ms, uint8_t *protocol_active);
 
 #ifdef __cplusplus
 }

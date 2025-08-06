@@ -10,6 +10,7 @@ static const char *TAG = "UIManager";
 // Global UI manager instance
 static ui_manager_t s_ui_manager = {0};
 static bool s_initialized = false;
+static ui_voice_activation_callback_t s_voice_callback = NULL;
 
 // Color definitions - HowdyTTS theme
 #define HOWDY_COLOR_PRIMARY     lv_color_hex(0x1a73e8)  // Google Blue
@@ -28,21 +29,18 @@ static bool s_initialized = false;
 #define HOWDY_BG_SPEAKING      lv_color_hex(0x1e4d72)  // Teal speaking
 #define HOWDY_BG_ERROR         lv_color_hex(0x4a1c1c)  // Dark red
 
-// Button callback for center character/mute button
+// Button callback for center character/voice activation button
 static void center_button_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     
     if (code == LV_EVENT_CLICKED) {
-        ESP_LOGI(TAG, "Howdy character clicked - toggling mute");
-        s_ui_manager.muted = !s_ui_manager.muted;
+        ESP_LOGI(TAG, "Howdy character clicked - starting voice activation");
         
-        // Update mic icon based on mute state
-        if (s_ui_manager.current_state == UI_STATE_IDLE) {
-            lv_label_set_text(s_ui_manager.mic_icon, s_ui_manager.muted ? "🔇" : "🎤");
+        // Call voice activation callback if set
+        if (s_voice_callback) {
+            s_voice_callback(true);  // Start voice capture
         }
-        
-        ESP_LOGI(TAG, "Audio %s", s_ui_manager.muted ? "muted" : "unmuted");
         
     } else if (code == LV_EVENT_PRESSING) {
         // Visual feedback - scale the character image slightly
@@ -88,15 +86,16 @@ static void create_main_screen(void)
     lv_arc_set_value(s_ui_manager.level_arc, 0);
     lv_obj_remove_style(s_ui_manager.level_arc, NULL, LV_PART_KNOB);
     
-    // Howdy character image (center of circular display) - much larger
+    // Howdy character image (center of circular display) - scaled up with antialias
     s_ui_manager.howdy_character = lv_img_create(main_container);
     lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);
-    lv_obj_set_size(s_ui_manager.howdy_character, 200, 200);  // Increased from 128 to 200
+    lv_obj_set_size(s_ui_manager.howdy_character, 264, 384);  // 3x scale (88x128 -> 264x384) 
+    lv_img_set_antialias(s_ui_manager.howdy_character, true);  // Enable antialiasing for smooth scaling
     lv_obj_center(s_ui_manager.howdy_character);
     
-    // Center button (transparent overlay for touch interaction) - larger touch area
+    // Center button (transparent overlay for touch interaction) - matches scaled image size
     s_ui_manager.center_button = lv_btn_create(main_container);
-    lv_obj_set_size(s_ui_manager.center_button, 220, 220);  // Increased from 140 to 220
+    lv_obj_set_size(s_ui_manager.center_button, 264, 384);  // Match scaled image size for full touch area
     lv_obj_center(s_ui_manager.center_button);
     lv_obj_set_style_bg_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
@@ -194,6 +193,72 @@ static void update_ui_for_state(ui_state_t state)
             lv_label_set_text(s_ui_manager.mic_icon, "⚠️");
             // Dynamic background: Dark red for error state
             lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_ERROR, 0);
+            break;
+            
+        // HowdyTTS specific states
+        case UI_STATE_WAKE_WORD_DETECTED:
+            lv_label_set_text(s_ui_manager.status_label, "Wake word detected");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyleft);  // Alert pose
+            lv_label_set_text(s_ui_manager.mic_icon, "👂");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_LISTENING, 0);
+            break;
+            
+        case UI_STATE_SPEECH_DETECTED:
+            lv_label_set_text(s_ui_manager.status_label, "Speech detected");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyleft);  // Listening pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🗣️");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_LISTENING, 0);
+            break;
+            
+        case UI_STATE_THINKING:
+            lv_label_set_text(s_ui_manager.status_label, "Thinking...");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ACCENT, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdymidget);  // Thinking pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🧠");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_PROCESSING, 0);
+            break;
+            
+        case UI_STATE_RESPONDING:
+            lv_label_set_text(s_ui_manager.status_label, "Responding...");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdyright2);  // Speaking pose
+            lv_label_set_text(s_ui_manager.mic_icon, "💬");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_SPEAKING, 0);
+            break;
+            
+        case UI_STATE_SESSION_ENDING:
+            lv_label_set_text(s_ui_manager.status_label, "Session ending...");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_PRIMARY, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);  // Farewell pose
+            lv_label_set_text(s_ui_manager.mic_icon, "👋");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_IDLE, 0);
+            break;
+            
+        // Network states
+        case UI_STATE_CONNECTING:
+            lv_label_set_text(s_ui_manager.status_label, "Connecting to server...");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ACCENT, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Searching pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🔗");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_INIT, 0);
+            break;
+            
+        case UI_STATE_DISCOVERING:
+            lv_label_set_text(s_ui_manager.status_label, "Discovering servers...");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_ACCENT, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_howdybackward);  // Looking around pose
+            lv_label_set_text(s_ui_manager.mic_icon, "🔍");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_INIT, 0);
+            break;
+            
+        case UI_STATE_REGISTERED:
+            lv_label_set_text(s_ui_manager.status_label, "Registered with server");
+            lv_obj_set_style_arc_color(s_ui_manager.level_arc, HOWDY_COLOR_SECONDARY, LV_PART_INDICATOR);
+            lv_img_set_src(s_ui_manager.howdy_character, &howdy_img_armraisehowdy);  // Success pose
+            lv_label_set_text(s_ui_manager.mic_icon, "✅");
+            lv_obj_set_style_bg_color(s_ui_manager.screen, HOWDY_BG_IDLE, 0);
             break;
     }
     
@@ -484,5 +549,12 @@ esp_err_t ui_manager_stop_processing_animation(void)
         ESP_LOGI(TAG, "Stopped processing animation");
     }
     
+    return ESP_OK;
+}
+
+esp_err_t ui_manager_set_voice_callback(ui_voice_activation_callback_t callback)
+{
+    s_voice_callback = callback;
+    ESP_LOGI(TAG, "Voice activation callback set");
     return ESP_OK;
 }

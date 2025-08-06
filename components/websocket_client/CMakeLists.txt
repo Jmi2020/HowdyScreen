@@ -4,6 +4,7 @@ idf_component_register(
         "src/howdytts_protocol.c"
         "src/howdytts_http_server.c"
         "src/howdytts_udp_stream.c"
+        "src/howdytts_network_integration.c"
     INCLUDE_DIRS 
         "include"
     REQUIRES 
@@ -17,4 +18,6 @@ idf_component_register(
         esp_timer
         mbedtls
         lwip
+        esp_netif
+        freertos
 )

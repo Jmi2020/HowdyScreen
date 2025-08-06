@@ -19,6 +19,121 @@ This comprehensive troubleshooting guide covers common integration issues, syste
 
 ## Common Integration Issues
 
+### Phase 6A Deployment Issues (RESOLVED - August 5, 2025)
+
+#### Critical Runtime Crash: LVGL Memory Allocation Error
+
+**Symptoms**:
+```
+Guru Meditation Error: Core 0 panic'ed (Load access fault)
+MEPC: 0x4002c120 RA: 0x4002c28a (search_suitable_block at lv_tlsf.c:563)
+```
+
+**Root Cause**: UI manager attempting to create LVGL objects before LVGL library initialization.
+
+**Solution**:
+```c
+// In main application - CORRECT initialization sequence:
+lv_display_t *display = bsp_display_start();        // Initialize LVGL first
+ESP_ERROR_CHECK(bsp_display_backlight_on());        // Enable display backlight
+ESP_ERROR_CHECK(ui_manager_init());                 // Then create UI objects
+
+// Add BSP dependency in main/CMakeLists.txt:
+REQUIRES driver esp_timer esp_event ui_manager wifi_manager 
+         websocket_client audio_processor esp32_p4_wifi6_touch_lcd_xc
+```
+
+#### Display Black Screen Issue
+
+**Symptoms**: 
+- Display initialization logs show success
+- Screen remains completely black
+- Touch controller initializes properly
+
+**Root Cause**: Backlight not enabled after display initialization.
+
+**Solution**:
+```c
+// After bsp_display_start(), always call:
+ESP_ERROR_CHECK(bsp_display_backlight_on());
+
+// Log output should show:
+// I ESP32_P4_XC: Setting LCD backlight: 100%
+```
+
+#### WiFi Connection Using Wrong Credentials
+
+**Symptoms**:
+```
+I WiFiManager: Connecting to SSID: YOUR_WIFI_SSID
+E WiFiManager: Failed to connect to SSID: YOUR_WIFI_SSID
+```
+
+**Root Cause**: WiFi manager using hardcoded placeholder credentials instead of menuconfig values.
+
+**Solution**:
+```c
+// In components/wifi_manager/src/wifi_manager.c:
+esp_err_t wifi_manager_auto_connect(void)
+{
+    // Use configured WiFi credentials from Kconfig
+    const char *default_ssid = CONFIG_HOWDY_WIFI_SSID;
+    const char *default_password = CONFIG_HOWDY_WIFI_PASSWORD;
+    
+    ESP_LOGI(TAG, "Auto-connecting to saved WiFi...");
+    ESP_LOGI(TAG, "Connecting to SSID: %s", default_ssid);
+    return wifi_manager_connect(default_ssid, default_password);
+}
+```
+
+**Verify menuconfig settings**:
+```bash
+idf.py menuconfig
+# Navigate to: Component config → HowdyScreen Configuration
+# Set: WiFi SSID and WiFi Password
+```
+
+#### Fatal Application Crash on WiFi Failure
+
+**Symptoms**:
+```
+ESP_ERROR_CHECK failed: esp_err_t 0xffffffff (ESP_FAIL)
+abort() was called at PC 0x4ff0cc4d on core 0
+```
+
+**Root Cause**: `ESP_ERROR_CHECK()` causing fatal termination when WiFi connection fails.
+
+**Solution**:
+```c
+// Replace ESP_ERROR_CHECK with proper error handling:
+esp_err_t wifi_result = wifi_manager_auto_connect();
+if (wifi_result != ESP_OK) {
+    ESP_LOGW(TAG, "⚠️ WiFi auto-connect failed: %s", esp_err_to_name(wifi_result));
+    ui_manager_update_status("WiFi connection failed - will retry");
+}
+// Application continues running and retries connection
+```
+
+#### Quick Resolution Checklist for Phase 6A
+
+```bash
+# 1. Verify BSP dependency is included
+grep "esp32_p4_wifi6_touch_lcd_xc" main/CMakeLists.txt
+
+# 2. Check initialization sequence in main app
+grep -A5 "bsp_display_start" main/*.c
+grep -A2 "bsp_display_backlight_on" main/*.c
+
+# 3. Verify WiFi credentials configuration
+grep "CONFIG_HOWDY_WIFI" components/wifi_manager/src/wifi_manager.c
+
+# 4. Ensure error handling (not ESP_ERROR_CHECK) for WiFi
+grep -B2 -A2 "wifi_manager_auto_connect" main/*.c
+
+# 5. Test build and deployment
+idf.py clean build flash monitor
+```
+
 ### Build and Configuration Problems
 
 #### Issue: Build Fails with Component Dependencies

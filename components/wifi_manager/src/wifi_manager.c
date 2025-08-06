@@ -301,11 +301,11 @@ esp_err_t wifi_manager_start_scan(void)
 
 esp_err_t wifi_manager_auto_connect(void)
 {
-    // For now, use hardcoded credentials
-    // In production, these would come from NVS storage
-    const char *default_ssid = "YOUR_WIFI_SSID";
-    const char *default_password = "YOUR_WIFI_PASSWORD";
+    // Use configured WiFi credentials from Kconfig
+    const char *default_ssid = CONFIG_HOWDY_WIFI_SSID;
+    const char *default_password = CONFIG_HOWDY_WIFI_PASSWORD;
     
     ESP_LOGI(TAG, "Auto-connecting to saved WiFi...");
+    ESP_LOGI(TAG, "Connecting to SSID: %s", default_ssid);
     return wifi_manager_connect(default_ssid, default_password);
 }

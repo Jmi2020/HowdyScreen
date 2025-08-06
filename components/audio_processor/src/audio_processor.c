@@ -8,6 +8,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_timer.h"
 
 static const char *TAG = "AudioProcessor";
 
@@ -34,6 +35,14 @@ static audio_event_callback_t s_event_callback = NULL;
 // Audio buffer
 static uint8_t *s_audio_buffer = NULL;
 static size_t s_buffer_size = 0;
+
+// HowdyTTS Integration Variables
+static audio_howdytts_config_t s_howdytts_config = {0};
+static bool s_howdytts_enabled = false;
+static bool s_dual_protocol_mode = false;
+static bool s_websocket_active = true;  // Default to WebSocket
+static uint32_t s_frames_processed = 0;
+static uint64_t s_total_process_time_us = 0;
 
 // GPIO definitions for ESP32-P4 + ES8311
 #define I2S_MCLK_GPIO    GPIO_NUM_13
@@ -62,15 +71,32 @@ static void audio_capture_task(void *pvParameters)
                                        &bytes_read, pdMS_TO_TICKS(100));
         
         if (ret == ESP_OK && bytes_read > 0) {
+            uint64_t start_time = esp_timer_get_time();
+            
             // Send to ring buffer
             if (xRingbufferSend(s_ringbuf_handle, buffer, bytes_read, 0) != pdTRUE) {
                 ESP_LOGW(TAG, "Ring buffer full, dropping audio data");
+            }
+            
+            // HowdyTTS Integration: Process audio for streaming
+            if (s_howdytts_enabled && s_howdytts_config.howdytts_audio_callback) {
+                // Convert bytes to 16-bit samples
+                size_t sample_count = bytes_read / 2;  // Assuming 16-bit samples
+                int16_t *samples = (int16_t*)buffer;
+                
+                // Call HowdyTTS callback for UDP/WebSocket streaming
+                s_howdytts_config.howdytts_audio_callback(samples, sample_count, s_howdytts_config.howdytts_user_data);
             }
             
             // Notify callback if set
             if (s_event_callback) {
                 s_event_callback(AUDIO_EVENT_DATA_READY, buffer, bytes_read);
             }
+            
+            // Update processing statistics
+            uint64_t end_time = esp_timer_get_time();
+            s_total_process_time_us += (end_time - start_time);
+            s_frames_processed++;
         } else if (ret != ESP_ERR_TIMEOUT) {
             ESP_LOGE(TAG, "I2S read error: %s", esp_err_to_name(ret));
             if (s_event_callback) {
@@ -362,6 +388,87 @@ esp_err_t audio_processor_write_data(const uint8_t *data, size_t length)
         ESP_LOGE(TAG, "I2S write error: %s", esp_err_to_name(ret));
         return ret;
     }
+    
+    return ESP_OK;
+}
+
+//=============================================================================
+// HOWDYTTS INTEGRATION FUNCTIONS
+//=============================================================================
+
+esp_err_t audio_processor_configure_howdytts(const audio_howdytts_config_t *howdy_config)
+{
+    if (!howdy_config) {
+        ESP_LOGE(TAG, "Invalid HowdyTTS configuration");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    ESP_LOGI(TAG, "Configuring HowdyTTS integration...");
+    ESP_LOGI(TAG, "  UDP Streaming: %s", howdy_config->enable_howdytts_streaming ? "enabled" : "disabled");
+    ESP_LOGI(TAG, "  OPUS Encoding: %s (level %d)", howdy_config->enable_opus_encoding ? "enabled" : "disabled", 
+             howdy_config->opus_compression_level);
+    ESP_LOGI(TAG, "  WebSocket Fallback: %s", howdy_config->enable_websocket_fallback ? "enabled" : "disabled");
+    
+    // Copy configuration
+    memcpy(&s_howdytts_config, howdy_config, sizeof(audio_howdytts_config_t));
+    s_howdytts_enabled = howdy_config->enable_howdytts_streaming;
+    s_dual_protocol_mode = howdy_config->enable_websocket_fallback;
+    
+    // Reset statistics
+    s_frames_processed = 0;
+    s_total_process_time_us = 0;
+    
+    ESP_LOGI(TAG, "HowdyTTS integration configured successfully");
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_set_dual_protocol(bool enable_dual_mode)
+{
+    s_dual_protocol_mode = enable_dual_mode;
+    
+    ESP_LOGI(TAG, "Dual protocol mode %s", enable_dual_mode ? "enabled" : "disabled");
+    
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_switch_protocol(bool use_websocket)
+{
+    if (!s_dual_protocol_mode) {
+        ESP_LOGW(TAG, "Cannot switch protocol - dual mode not enabled");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    const char* old_protocol = s_websocket_active ? "WebSocket" : "UDP";
+    const char* new_protocol = use_websocket ? "WebSocket" : "UDP";
+    
+    if (s_websocket_active != use_websocket) {
+        ESP_LOGI(TAG, "Switching audio protocol: %s -> %s", old_protocol, new_protocol);
+        s_websocket_active = use_websocket;
+        
+        // Note: Actual protocol switching would be handled by the HowdyTTS network integration
+        // This just tracks the current mode for statistics and coordination
+    } else {
+        ESP_LOGD(TAG, "Protocol switch requested but already using %s", new_protocol);
+    }
+    
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_get_stats(uint32_t *frames_processed, float *avg_latency_ms, uint8_t *protocol_active)
+{
+    if (!frames_processed || !avg_latency_ms || !protocol_active) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    *frames_processed = s_frames_processed;
+    
+    if (s_frames_processed > 0) {
+        *avg_latency_ms = (float)(s_total_process_time_us / s_frames_processed) / 1000.0f;
+    } else {
+        *avg_latency_ms = 0.0f;
+    }
+    
+    *protocol_active = s_websocket_active ? 1 : 0;
     
     return ESP_OK;
 }

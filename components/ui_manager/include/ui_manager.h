@@ -13,7 +13,17 @@ typedef enum {
     UI_STATE_LISTENING,
     UI_STATE_PROCESSING,
     UI_STATE_SPEAKING,
-    UI_STATE_ERROR
+    UI_STATE_ERROR,
+    // HowdyTTS specific states
+    UI_STATE_WAKE_WORD_DETECTED,
+    UI_STATE_SPEECH_DETECTED,
+    UI_STATE_THINKING,
+    UI_STATE_RESPONDING,
+    UI_STATE_SESSION_ENDING,
+    // Network states
+    UI_STATE_CONNECTING,
+    UI_STATE_DISCOVERING,
+    UI_STATE_REGISTERED
 } ui_state_t;
 
 typedef struct {
@@ -25,10 +35,22 @@ typedef struct {
     lv_obj_t *center_button;    // Mute/unmute control
     lv_obj_t *howdy_character;  // Howdy character image for state visualization
     lv_obj_t *mic_icon;         // Microphone icon
+    lv_obj_t *protocol_indicator;  // Shows UDP/WebSocket protocol
+    lv_obj_t *server_info;      // Connected server information
     ui_state_t current_state;
     bool muted;
     int wifi_signal_strength;
+    // HowdyTTS Integration
+    char connected_server[64];  // Currently connected HowdyTTS server
+    bool howdytts_connected;    // HowdyTTS connection status
+    bool dual_protocol_mode;    // Dual protocol mode enabled
+    bool using_websocket;       // Currently using WebSocket vs UDP
 } ui_manager_t;
+
+/**
+ * @brief Voice activation callback function type
+ */
+typedef void (*ui_voice_activation_callback_t)(bool start_voice);
 
 /**
  * @brief Initialize UI manager
@@ -36,6 +58,14 @@ typedef struct {
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t ui_manager_init(void);
+
+/**
+ * @brief Set voice activation callback
+ * 
+ * @param callback Callback function for voice activation
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_set_voice_callback(ui_voice_activation_callback_t callback);
 
 /**
  * @brief Set UI state
@@ -123,6 +153,53 @@ esp_err_t ui_manager_start_processing_animation(void);
  * @brief Stop processing animation
  */
 esp_err_t ui_manager_stop_processing_animation(void);
+
+/**
+ * @brief Set HowdyTTS connection status
+ * 
+ * @param connected HowdyTTS connection status
+ * @param server_name Connected server name
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_set_howdytts_status(bool connected, const char *server_name);
+
+/**
+ * @brief Set dual protocol mode status
+ * 
+ * @param dual_mode Dual protocol mode enabled
+ * @param using_websocket Currently using WebSocket (vs UDP)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_set_protocol_status(bool dual_mode, bool using_websocket);
+
+/**
+ * @brief Update HowdyTTS conversation state with enhanced feedback
+ * 
+ * @param howdy_state HowdyTTS conversation state
+ * @param text Associated text (transcript/response)
+ * @param confidence Confidence score (0.0-1.0)
+ * @param audio_level Current audio level (0.0-1.0)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_update_howdytts_state(int howdy_state, const char *text, float confidence, float audio_level);
+
+/**
+ * @brief Show network discovery progress
+ * 
+ * @param discovering Currently discovering servers
+ * @param servers_found Number of servers found
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_show_discovery_progress(bool discovering, int servers_found);
+
+/**
+ * @brief Show protocol switch animation
+ * 
+ * @param from_protocol Source protocol ("UDP" or "WebSocket")
+ * @param to_protocol Target protocol ("UDP" or "WebSocket")
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t ui_manager_show_protocol_switch(const char *from_protocol, const char *to_protocol);
 
 #ifdef __cplusplus
 }
