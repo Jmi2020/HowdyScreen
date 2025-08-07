@@ -4,7 +4,7 @@
  * 
  * Provides native HowdyTTS protocol support with:
  * - UDP discovery protocol (port 8001)
- * - PCM audio streaming via UDP (port 8000) 
+ * - PCM audio streaming via UDP (port 8003) 
  * - HTTP state management server (port 8080)
  * - Automatic server discovery and device registration
  * - Room-based device management
@@ -27,7 +27,7 @@ extern "C" {
 
 // HowdyTTS Protocol Configuration
 #define HOWDYTTS_DISCOVERY_PORT         8001
-#define HOWDYTTS_AUDIO_PORT            8000
+#define HOWDYTTS_AUDIO_PORT            8003
 #define HOWDYTTS_HTTP_PORT             8080
 
 // Audio Configuration (PCM Streaming)
@@ -41,7 +41,7 @@ extern "C" {
 
 // Discovery Protocol
 #define HOWDYTTS_DISCOVERY_REQUEST     "HOWDYTTS_DISCOVERY"
-#define HOWDYTTS_DISCOVERY_RESPONSE    "HOWDYSCREEN_ESP32P4_%s"
+#define HOWDYTTS_DISCOVERY_RESPONSE    "HOWDYSCREEN_ESP32P4_%s_ROOM_%s"
 
 // Device Configuration
 #define HOWDYTTS_DEVICE_TYPE           "ESP32P4_HowdyScreen"
@@ -109,7 +109,7 @@ typedef struct {
     char hostname[64];                 ///< Server hostname
     char ip_address[16];               ///< Server IP address
     uint16_t discovery_port;           ///< Discovery port (8001)
-    uint16_t audio_port;               ///< Audio streaming port (8000)
+    uint16_t audio_port;               ///< Audio streaming port (8003)
     uint16_t http_port;                ///< HTTP state port (8080)
     int32_t rssi;                      ///< Signal strength
     uint32_t last_seen;                ///< Last communication timestamp
@@ -124,6 +124,7 @@ typedef struct {
     char device_id[HOWDYTTS_MAX_DEVICE_ID_LEN];         ///< Unique device identifier
     char device_name[HOWDYTTS_MAX_DEVICE_NAME_LEN];     ///< Human-readable name
     char room[HOWDYTTS_MAX_ROOM_NAME_LEN];              ///< Room assignment
+    char default_server_ip[16];                         ///< Default server IP for direct connection
     howdytts_protocol_mode_t protocol_mode;             ///< Protocol mode
     howdytts_audio_format_t audio_format;               ///< Audio format
     uint32_t sample_rate;                               ///< Audio sample rate

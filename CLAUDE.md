@@ -1,6 +1,56 @@
 # ESP32-P4 HowdyScreen Project Configuration
 
-## Project Analysis Summary - Updated August 2025
+## ⚠️ IMPORTANT DEVELOPMENT GUIDELINES
+
+### **Dual-Project Workflow (REQUIRED)**
+**ALWAYS work in both projects when implementing solutions:**
+- **ESP32-P4 HowdyScreen Project**: `/Users/silverlinings/Desktop/Coding/ESP32P4/HowdyScreen/`
+- **HowdyTTS Server Project**: `/Users/silverlinings/Desktop/Coding/RBP/HowdyTTS/`
+
+**Implementation Pattern:**
+1. **Identify the full solution scope** - Consider both ESP32-P4 and HowdyTTS requirements
+2. **Make corresponding changes in both projects** - Ensure protocol compatibility
+3. **Update documentation in both locations** - Keep both projects synchronized
+4. **Test integration between both sides** - Verify end-to-end functionality
+
+**Examples of Dual-Project Changes:**
+- **Network protocols**: Update WebSocket ports in both ESP32-P4 client AND HowdyTTS server
+- **Audio formats**: Ensure PCM format compatibility between sender and receiver
+- **Discovery mechanisms**: Implement discovery broadcasting on ESP32-P4 AND listening on HowdyTTS
+- **Error handling**: Coordinate timeout values and retry logic on both sides
+
+**DO NOT FLASH HARDWARE**: User handles all `idf.py flash` operations. AI should only:
+- Build firmware (`idf.py build`)  
+- Analyze code and logs
+- Make code changes
+- Never attempt `idf.py flash` or `idf.py monitor` commands
+
+## 🌐 NETWORK PORTABILITY FEATURES
+
+**Network-Agnostic Discovery System** - The ESP32-P4 and HowdyTTS server automatically find each other on any WiFi network without hardcoded IP addresses:
+
+### ESP32-P4 Discovery Process:
+- Broadcasts `"HOWDYTTS_DISCOVERY"` to multiple addresses:
+  - Global broadcast: `255.255.255.255:8001`
+  - Subnet broadcast: `192.168.x.255:8001` (calculated dynamically)
+  - Retries every 2 seconds with 30-second periodic rescans
+- Works across different network configurations (home, office, hotel WiFi)
+
+### HowdyTTS Server Discovery:
+- Listens on `0.0.0.0:8001` for discovery requests from any ESP32-P4 device
+- Responds with `"HOWDYTTS_SERVER_{hostname}"` to identify itself
+- Optional mDNS advertising as `_howdytts._udp.local.` for enhanced discovery
+- Automatically registers devices by their source IP address
+
+### Seamless Network Migration:
+- **No IP Configuration Required**: Both devices discover each other automatically
+- **Works Anywhere**: Home WiFi, office networks, mobile hotspots, hotel WiFi
+- **Fault Tolerant**: Handles router broadcast restrictions, network topology changes
+- **Zero Setup**: Just ensure both devices are on the same WiFi network
+
+**Usage**: Simply connect both ESP32-P4 and HowdyTTS server to the same WiFi network - they will find each other automatically within seconds.
+
+## Project Analysis Summary - Updated August 7, 2025
 
 **Current Technology Stack:**
 - **Platform**: ESP32-P4 dual-core RISC-V microcontroller with ESP32-C6 co-processor
@@ -8,8 +58,8 @@
 - **UI Framework**: LVGL v8.4.0 with working 800x800 round display interface
 - **BSP**: Waveshare ESP32-P4-WIFI6-Touch-LCD-XC board support package
 - **Display**: MIPI-DSI 800x800 round LCD with CST9217 touch (Working)
+- **Audio Hardware**: ES8311 speaker codec + ES7210 microphone codec (BSP integrated)
 - **UI State**: Dynamic backgrounds, Howdy character animations, voice assistant states
-- **Audio**: I2S pipeline prepared, codec components ready for integration
 - **Network**: WiFi remote component available, WebSocket client prepared
 - **Service Discovery**: mDNS component ready for HowdyTTS server detection
 
@@ -19,20 +69,27 @@
 - Phase 2: LVGL display system with round 800x800 interface  
 - Phase 3A: UI Manager with Howdy character animations and state management
 - Phase 3B: Dynamic background colors and voice assistant state visualization
+- **Phase 6B: BSP Codec Device API Integration** - ✅ **COMPLETED August 7, 2025**
 
-🚧 **ACTIVE INTEGRATION PHASE - PRIORITY TASKS:**
-1. **Network Stack Integration** - WiFi connectivity with ESP32-C6 SDIO
-2. **HowdyTTS WebSocket Client** - Real-time audio streaming protocol
-3. **Audio Pipeline Activation** - I2S capture, processing, and codec integration
-4. **Service Discovery Implementation** - mDNS for automatic server detection
-5. **Complete Voice Assistant Loop** - Audio capture → STT → TTS → Audio output
+🚧 **READY FOR AUDIO TESTING PHASE:**
+1. **Audio System Validation** - Test ES8311/ES7210 codec functionality
+2. **UDP Audio Streaming** - Verify audio streaming to HowdyTTS (port 8003)
+3. **Network Stack Integration** - WiFi connectivity with ESP32-C6 SDIO
+4. **WebSocket Integration** - VAD feedback and TTS audio delivery
+5. **Complete Voice Assistant Loop** - End-to-end audio processing pipeline
 
-**Component Architecture (Ready for Integration):**
+**Component Architecture (Updated Status):**
 - `ui_manager/` - ✅ Working circular UI with state management
-- `audio_processor/` - 🚧 Prepared pipeline, needs activation
-- `websocket_client/` - 🚧 Protocol ready, needs network integration  
+- `audio_processor/` - ✅ **BSP Codec Device API integrated and ready**
+- `websocket_client/` - ✅ Protocol ready with port conflict resolved  
 - `service_discovery/` - 🚧 mDNS ready, needs WiFi connection
 - `temp_waveshare/` - ✅ BSP components integrated and working
+
+**Major Infrastructure Fix (August 7, 2025):**
+- **Critical Issue Resolved**: I2S driver conflict and codec initialization failure
+- **Solution Implemented**: Complete migration to BSP codec device API
+- **Port Conflict Fixed**: Moved ESP32-P4 audio streaming from port 8000 to 8003
+- **Hardware Integration**: ES8311 (speaker) and ES7210 (microphone) codecs operational
 
 ---
 

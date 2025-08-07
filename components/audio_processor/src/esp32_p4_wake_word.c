@@ -58,6 +58,13 @@ typedef struct esp32_p4_wake_word_detector {
     uint64_t last_process_time;
     uint64_t silence_start_time;
     
+    // Conversation context
+    vad_conversation_context_t conversation_context;
+    uint64_t context_change_time;
+    float current_tts_level;
+    uint16_t context_adapted_threshold;
+    bool context_suppressed;
+    
     // Statistics
     esp32_p4_wake_word_stats_t stats;
     
@@ -75,6 +82,7 @@ static float calculate_pattern_match(const float *pattern_buffer, uint8_t length
 static uint8_t detect_syllables(const float *energy_pattern, uint8_t length);
 static void update_adaptive_threshold(esp32_p4_wake_word_detector_t *detector, uint16_t energy);
 static esp32_p4_wake_word_confidence_t calculate_confidence_level(float confidence_score);
+static void apply_conversation_context_to_wake_word(esp32_p4_wake_word_detector_t *detector);
 
 esp32_p4_wake_word_handle_t esp32_p4_wake_word_init(const esp32_p4_wake_word_config_t *config)
 {
@@ -96,6 +104,13 @@ esp32_p4_wake_word_handle_t esp32_p4_wake_word_init(const esp32_p4_wake_word_con
     detector->state = WAKE_WORD_STATE_LISTENING;
     detector->enabled = true;
     detector->adaptive_threshold = config->energy_threshold;
+    
+    // Initialize conversation context
+    detector->conversation_context = VAD_CONVERSATION_IDLE; // Start in idle for wake word detection
+    detector->context_change_time = esp_timer_get_time();
+    detector->current_tts_level = 0.0f;
+    detector->context_adapted_threshold = config->energy_threshold;
+    detector->context_suppressed = false;
     
     // Initialize mutex
     detector->mutex = xSemaphoreCreateMutex();
@@ -187,8 +202,21 @@ esp_err_t esp32_p4_wake_word_process(esp32_p4_wake_word_handle_t handle,
         result->snr_db = vad_result->snr_db;
     }
     
+    // Apply conversation context to detection threshold
+    apply_conversation_context_to_wake_word(detector);
+    
+    // Check if detection is suppressed by conversation context
+    if (detector->context_suppressed) {
+        // Skip processing if context suppresses wake word detection
+        result->conversation_context = detector->conversation_context;
+        result->context_suppressed = true;
+        result->echo_suppression_applied = detector->current_tts_level;
+        xSemaphoreGive(detector->mutex);
+        return ESP_OK;
+    }
+    
     // Check if we're in a potential wake word detection
-    bool above_threshold = energy > detector->adaptive_threshold;
+    bool above_threshold = energy > detector->context_adapted_threshold;
     bool vad_confirms = vad_result ? vad_result->voice_detected : true; // Assume voice if no VAD
     
     if (above_threshold && vad_confirms) {
@@ -274,8 +302,16 @@ esp_err_t esp32_p4_wake_word_process(esp32_p4_wake_word_handle_t handle,
                     result->syllable_count = syllable_count;
                     result->detection_quality = (uint8_t)(confidence * 255);
                     
-                    ESP_LOGI(TAG, "🎯 Wake word 'Hey Howdy' detected! Confidence: %.2f%% (ID: %lu)", 
-                            confidence * 100, detector->detection_id_counter);
+                    // Fill conversation context results
+                    result->conversation_context = detector->conversation_context;
+                    result->context_suppressed = false; // Detection succeeded despite context
+                    result->echo_suppression_applied = detector->current_tts_level;
+                    
+                    ESP_LOGI(TAG, "🎯 Wake word 'Hey Howdy' detected! Confidence: %.2f%% (ID: %lu, Context: %s)", 
+                            confidence * 100, detector->detection_id_counter,
+                            detector->conversation_context == VAD_CONVERSATION_IDLE ? "idle" :
+                            detector->conversation_context == VAD_CONVERSATION_LISTENING ? "listening" :
+                            detector->conversation_context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing");
                     
                     // Call callback if set
                     if (detector->callback) {
@@ -499,6 +535,61 @@ static esp32_p4_wake_word_confidence_t calculate_confidence_level(float confiden
     }
 }
 
+// Helper function to apply conversation context to wake word detection
+static void apply_conversation_context_to_wake_word(esp32_p4_wake_word_detector_t *detector)
+{
+    if (!detector->config.conversation.enable_context_awareness) {
+        detector->context_adapted_threshold = detector->adaptive_threshold;
+        detector->context_suppressed = false;
+        return;
+    }
+    
+    uint16_t threshold_adjustment = 100; // Default 100% (no change)
+    bool suppress_detection = false;
+    
+    switch (detector->conversation_context) {
+        case VAD_CONVERSATION_IDLE:
+            // Boost sensitivity for wake word detection in idle state
+            threshold_adjustment = 100 - detector->config.conversation.idle_sensitivity_boost;
+            break;
+            
+        case VAD_CONVERSATION_LISTENING:
+            // Normal sensitivity during active conversation
+            threshold_adjustment = 100;
+            // Allow wake word during conversation if configured
+            suppress_detection = !detector->config.conversation.enable_during_conversation;
+            break;
+            
+        case VAD_CONVERSATION_SPEAKING:
+            // Reduced sensitivity during TTS with echo suppression
+            threshold_adjustment = 100 + detector->config.conversation.speaking_suppression;
+            
+            // Additional suppression based on TTS level
+            if (detector->current_tts_level > 0.1f) {
+                float tts_suppression = detector->current_tts_level * 
+                    (detector->config.conversation.echo_rejection_db / 20.0f);
+                threshold_adjustment += (uint16_t)(tts_suppression * 50); // Up to 50% additional suppression
+            }
+            break;
+            
+        case VAD_CONVERSATION_PROCESSING:
+        default:
+            // Normal behavior during processing
+            threshold_adjustment = 100;
+            break;
+    }
+    
+    // Apply threshold adjustment
+    detector->context_adapted_threshold = (detector->adaptive_threshold * threshold_adjustment) / 100;
+    detector->context_suppressed = suppress_detection;
+    
+    ESP_LOGV(TAG, "Wake word context adaptation - Context: %d, Threshold: %d->%d, Suppressed: %s",
+            detector->conversation_context, 
+            detector->adaptive_threshold,
+            detector->context_adapted_threshold,
+            suppress_detection ? "YES" : "NO");
+}
+
 // Additional API implementations
 esp_err_t esp32_p4_wake_word_get_default_config(esp32_p4_wake_word_config_t *config)
 {
@@ -515,6 +606,14 @@ esp_err_t esp32_p4_wake_word_get_default_config(esp32_p4_wake_word_config_t *con
     config->consistency_frames = 3;        // Require 3 consistent frames
     config->enable_adaptation = true;      // Enable adaptive thresholds
     config->adaptation_rate = 0.05f;       // 5% adaptation rate
+    
+    // Conversation-aware settings
+    config->conversation.enable_context_awareness = true;   // Enable conversation context
+    config->conversation.idle_sensitivity_boost = 20;      // 20% boost in idle state
+    config->conversation.speaking_suppression = 40;        // 40% suppression during TTS
+    config->conversation.echo_rejection_db = 12;           // 12dB echo rejection
+    config->conversation.enable_during_conversation = true; // Allow wake word during conversation
+    
     config->processing_interval_ms = 20;   // 20ms processing interval
     config->max_detections_per_min = 10;   // Max 10 detections per minute
     
@@ -608,4 +707,116 @@ esp_err_t esp32_p4_wake_word_update_thresholds(esp32_p4_wake_word_handle_t handl
     }
     
     return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t esp32_p4_wake_word_set_conversation_context(esp32_p4_wake_word_handle_t handle,
+                                                    vad_conversation_context_t context)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    esp32_p4_wake_word_detector_t *detector = (esp32_p4_wake_word_detector_t*)handle;
+    
+    if (xSemaphoreTake(detector->mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (detector->conversation_context != context) {
+            ESP_LOGI(TAG, "Wake word conversation context changed: %s -> %s",
+                    detector->conversation_context == VAD_CONVERSATION_IDLE ? "idle" :
+                    detector->conversation_context == VAD_CONVERSATION_LISTENING ? "listening" :
+                    detector->conversation_context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing",
+                    context == VAD_CONVERSATION_IDLE ? "idle" :
+                    context == VAD_CONVERSATION_LISTENING ? "listening" :
+                    context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing");
+            
+            detector->conversation_context = context;
+            detector->context_change_time = esp_timer_get_time();
+            
+            // Reset TTS level when leaving speaking state
+            if (context != VAD_CONVERSATION_SPEAKING) {
+                detector->current_tts_level = 0.0f;
+            }
+        }
+        
+        xSemaphoreGive(detector->mutex);
+        return ESP_OK;
+    }
+    
+    return ESP_ERR_TIMEOUT;
+}
+
+vad_conversation_context_t esp32_p4_wake_word_get_conversation_context(esp32_p4_wake_word_handle_t handle)
+{
+    if (!handle) {
+        return VAD_CONVERSATION_IDLE;
+    }
+    
+    esp32_p4_wake_word_detector_t *detector = (esp32_p4_wake_word_detector_t*)handle;
+    return detector->conversation_context;
+}
+
+esp_err_t esp32_p4_wake_word_set_tts_level(esp32_p4_wake_word_handle_t handle, 
+                                          float tts_level)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    esp32_p4_wake_word_detector_t *detector = (esp32_p4_wake_word_detector_t*)handle;
+    
+    // Clamp TTS level to valid range
+    tts_level = fmaxf(0.0f, fminf(1.0f, tts_level));
+    
+    if (xSemaphoreTake(detector->mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        if (fabsf(detector->current_tts_level - tts_level) > 0.1f) { // Only log significant changes
+            ESP_LOGD(TAG, "Wake word TTS level updated: %.2f -> %.2f", 
+                    detector->current_tts_level, tts_level);
+        }
+        
+        detector->current_tts_level = tts_level;
+        
+        // Automatically set context to speaking when TTS is active
+        if (tts_level > 0.1f && detector->conversation_context != VAD_CONVERSATION_SPEAKING) {
+            detector->conversation_context = VAD_CONVERSATION_SPEAKING;
+            detector->context_change_time = esp_timer_get_time();
+        }
+        
+        xSemaphoreGive(detector->mutex);
+        return ESP_OK;
+    }
+    
+    return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t esp32_p4_wake_word_get_conversation_config(esp32_p4_wake_word_config_t *config)
+{
+    if (!config) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Start with default configuration
+    esp_err_t ret = esp32_p4_wake_word_get_default_config(config);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+    
+    // Optimize for conversation flow
+    config->confidence_threshold = 0.68f;           // Slightly higher confidence for conversation
+    config->silence_timeout_ms = 1800;             // Faster timeout for conversation flow
+    config->consistency_frames = 4;                // More consistency required
+    config->max_detections_per_min = 15;           // Allow more frequent detections in conversation
+    
+    // Enhanced conversation-aware settings
+    config->conversation.enable_context_awareness = true;
+    config->conversation.idle_sensitivity_boost = 25;      // 25% boost in idle state
+    config->conversation.speaking_suppression = 50;        // 50% suppression during TTS  
+    config->conversation.echo_rejection_db = 15;           // Stronger echo rejection
+    config->conversation.enable_during_conversation = true; // Enable "Hey Howdy" during conversation
+    
+    ESP_LOGI(TAG, "Generated conversation-optimized wake word configuration");
+    ESP_LOGI(TAG, "Idle boost: %d%%, TTS suppression: %d%%, Echo rejection: %ddB", 
+            config->conversation.idle_sensitivity_boost,
+            config->conversation.speaking_suppression,
+            config->conversation.echo_rejection_db);
+    
+    return ESP_OK;
 }

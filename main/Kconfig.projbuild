@@ -45,6 +45,24 @@ menu "HowdyScreen Configuration"
             help
                 Use mDNS to automatically discover HowdyTTS servers on the network.
     endmenu
+
+    menu "Device Configuration"
+        config HOWDY_DEVICE_ROOM
+            string "Room Name"
+            default "Living Room"
+            help
+                Name of the room where this ESP32-P4 device is located.
+                This helps the HowdyTTS server identify and target specific rooms.
+                Examples: "Living Room", "Kitchen", "Bedroom", "Office"
+                
+        config HOWDY_DEVICE_NAME
+            string "Device Name"
+            default "HowdyScreen"
+            help
+                Custom name for this ESP32-P4 device.
+                Will be displayed in HowdyTTS server device list.
+                Examples: "Kitchen Display", "Bedroom Assistant", "Main Screen"
+    endmenu
     
     config HOWDY_AUDIO_TASK_PRIORITY
         int "Audio Task Priority"

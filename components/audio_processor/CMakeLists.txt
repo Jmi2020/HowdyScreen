@@ -13,6 +13,6 @@ idf_component_register(
          "src/stt_audio_handler.c"
          "src/audio_interface_coordinator.c"
     INCLUDE_DIRS "include"
-    REQUIRES driver esp_timer websocket_client lwip
+    REQUIRES driver esp_timer websocket_client lwip waveshare__esp32_p4_wifi6_touch_lcd_xc
     PRIV_REQUIRES esp_ringbuf spi_flash
 )

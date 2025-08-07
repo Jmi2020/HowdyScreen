@@ -40,11 +40,15 @@
 #include "esp32_p4_wake_word.h"
 #include "esp32_p4_vad_feedback.h"
 #include "tts_audio_handler.h"
+#include "websocket_client.h"
+#include "dual_i2s_manager.h"
 
 static const char *TAG = "HowdyPhase6";
 
 // Forward declarations
 esp_err_t init_vad_feedback_client(const char *server_ip);
+extern esp_err_t run_audio_stream_test(void);
+static void update_conversation_context(vad_conversation_context_t new_context);
 
 // Global state
 typedef struct {
@@ -64,13 +68,70 @@ typedef struct {
     esp32_p4_wake_word_handle_t wake_word_handle;
     bool wake_word_initialized;
     uint32_t wake_word_detections;
+    float wake_word_confidence;          // Last wake word confidence
     
-    // VAD feedback client state
+    // VAD feedback client state (includes TTS audio playback)
     vad_feedback_handle_t vad_feedback_handle;
     bool vad_feedback_connected;
 } app_state_t;
 
 static app_state_t s_app_state = {0};
+
+// Performance monitoring task
+static void performance_monitoring_task(void *pvParameters)
+{
+    ESP_LOGI(TAG, "🎯 Performance monitoring task started");
+    
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(30000); // Report every 30 seconds
+    
+    while (1) {
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+        
+        // Get dual I2S performance metrics
+        dual_i2s_performance_metrics_t i2s_metrics;
+        esp_err_t ret = dual_i2s_get_performance_metrics(&i2s_metrics);
+        
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "📊 === PERFORMANCE REPORT ===");
+            ESP_LOGI(TAG, "🎵 Audio Latency: %lu ms (Target: <30ms)", i2s_metrics.estimated_audio_latency_ms);
+            ESP_LOGI(TAG, "⚡ I2S Processing: avg=%.1fμs, max=%luμs", 
+                    i2s_metrics.average_processing_time_us, i2s_metrics.max_processing_time_us);
+            ESP_LOGI(TAG, "📈 Operations: %lu total, %lu underruns, %lu mode switches",
+                    i2s_metrics.total_operations, i2s_metrics.buffer_underruns, i2s_metrics.mode_switches);
+            ESP_LOGI(TAG, "💾 Memory Usage: %zu bytes I2S buffers", i2s_metrics.memory_usage_bytes);
+            
+            // System memory info
+            multi_heap_info_t heap_info;
+            heap_caps_get_info(&heap_info, MALLOC_CAP_DEFAULT);
+            ESP_LOGI(TAG, "🧠 System Memory: %lu KB free, %lu KB largest", 
+                    heap_info.total_free_bytes / 1024, heap_info.largest_free_block / 1024);
+            
+            // Audio stream statistics
+            ESP_LOGI(TAG, "🎤 Audio Stats: %lu packets sent, level=%.1f", 
+                    s_app_state.audio_packets_sent, s_app_state.current_audio_level);
+            ESP_LOGI(TAG, "🎯 Wake Words: %lu detections", s_app_state.wake_word_detections);
+            
+            // Connection status
+            ESP_LOGI(TAG, "🌐 Connections: WiFi=%s, HowdyTTS=%s, VAD Feedback=%s",
+                    s_app_state.wifi_connected ? "✅" : "❌",
+                    s_app_state.howdytts_connected ? "✅" : "❌", 
+                    s_app_state.vad_feedback_connected ? "✅" : "❌");
+            ESP_LOGI(TAG, "📊 === END PERFORMANCE REPORT ===");
+            
+            // Performance warning system
+            if (i2s_metrics.estimated_audio_latency_ms > 50) {
+                ESP_LOGW(TAG, "⚠️ Audio latency above 50ms target!");
+            }
+            if (i2s_metrics.buffer_underruns > 10) {
+                ESP_LOGW(TAG, "⚠️ High buffer underrun count detected!");
+            }
+            if (heap_info.total_free_bytes < 100000) { // Less than 100KB
+                ESP_LOGW(TAG, "⚠️ Low memory warning: %lu bytes free", heap_info.total_free_bytes);
+            }
+        }
+    }
+}
 
 // Wake word detection callback
 static void wake_word_detection_callback(const esp32_p4_wake_word_result_t *result, void *user_data)
@@ -78,18 +139,33 @@ static void wake_word_detection_callback(const esp32_p4_wake_word_result_t *resu
     if (!result) return;
     
     s_app_state.wake_word_detections++;
+    s_app_state.wake_word_confidence = result->confidence_score;
     
     ESP_LOGI(TAG, "🎯 Wake word detected! Confidence: %.2f%%, Pattern: %d, Syllables: %d", 
             result->confidence_score * 100, 
             result->pattern_match_score,
             result->syllable_count);
     
-    // Update UI immediately for wake word detection
-    ui_manager_set_state(UI_STATE_LISTENING);
+    // Enhanced wake word detection UI with complete state management
     char wake_word_msg[128];
     snprintf(wake_word_msg, sizeof(wake_word_msg), 
-             "Wake word detected (%.0f%% confidence)", result->confidence_score * 100);
-    ui_manager_update_status(wake_word_msg);
+             "'Hey Howdy' detected (%.0f%% confidence)", result->confidence_score * 100);
+             
+    char detail_msg[128];
+    snprintf(detail_msg, sizeof(detail_msg), 
+             "Pattern: %d, Syllables: %d", result->pattern_match_score, result->syllable_count);
+    
+    // Show wake word detection with animation
+    ui_manager_show_wake_word_detection(result->confidence_score, "Hey Howdy");
+    
+    // Update conversation state to wake word detected
+    ui_manager_update_conversation_state(UI_STATE_WAKE_WORD_DETECTED,
+                                        "Wake word detected!",
+                                        detail_msg,
+                                        0, // No mic level yet
+                                        0, // No TTS
+                                        0.0f, // No VAD yet
+                                        result->confidence_score);
     
     // Send wake word detection to VAD feedback server for validation
     if (s_app_state.vad_feedback_connected) {
@@ -99,11 +175,9 @@ static void wake_word_detection_callback(const esp32_p4_wake_word_result_t *resu
                                              NULL); // No VAD result in this callback
     }
     
-    // Start audio streaming to HowdyTTS server if connected
-    if (s_app_state.howdytts_connected) {
-        ESP_LOGI(TAG, "🎤 Starting audio streaming after wake word detection");
-        howdytts_start_audio_streaming();
-    }
+    // Audio is already streaming continuously - wake word is sent via enhanced UDP
+    // The server receives wake word detection through the enhanced UDP protocol
+    ESP_LOGI(TAG, "🎤 Wake word detected - server notified via enhanced UDP protocol");
 }
 
 // VAD feedback event callback
@@ -132,15 +206,25 @@ static void vad_feedback_event_callback(vad_feedback_message_type_t type,
                                                   validation->processing_time_ms);
             }
             
-            // Update UI based on server validation
+            // Enhanced UI feedback based on server validation
             if (validation->validated) {
-                ui_manager_update_status("Wake word confirmed by server");
-                // Continue with voice processing
+                // Server confirmed wake word - transition to listening
+                ui_manager_update_conversation_state(UI_STATE_LISTENING,
+                                                    "Wake word confirmed - listening",
+                                                    "Server validation successful",
+                                                    0, 0, 0.0f, validation->server_confidence);
+                                                    
+                ESP_LOGI(TAG, "✅ Server confirmed wake word - continuing conversation");
             } else {
-                ui_manager_update_status("False alarm - wake word rejected");
-                ui_manager_set_state(UI_STATE_IDLE);
+                // Server rejected wake word - return to idle
+                ui_manager_update_conversation_state(UI_STATE_IDLE,
+                                                    "False wake word - back to listening",
+                                                    "Server rejected detection",
+                                                    0, 0, 0.0f, 0.0f);
+                                                    
                 // Stop audio streaming if it was started
                 howdytts_stop_audio_streaming();
+                ESP_LOGI(TAG, "❌ Server rejected wake word - returning to idle");
             }
             break;
         }
@@ -161,12 +245,19 @@ static void vad_feedback_event_callback(vad_feedback_message_type_t type,
                                                     update->new_confidence_threshold);
             }
             
+            // Show threshold update in detail status
             char threshold_msg[128];
             snprintf(threshold_msg, sizeof(threshold_msg), 
-                    "Thresholds updated: E=%d C=%.2f", 
+                    "Adaptive learning: E=%d C=%.2f", 
                     update->new_energy_threshold,
                     update->new_confidence_threshold);
-            ui_manager_update_status(threshold_msg);
+                    
+            // Update conversation state to show adaptation
+            ui_state_t current_state = ui_manager_get_state();
+            ui_manager_update_conversation_state(current_state, // Keep current state
+                                                NULL, // Don't change main status
+                                                threshold_msg, // Show in detail
+                                                0, 0, 0.0f, -1.0f);
             break;
         }
         
@@ -228,26 +319,43 @@ static esp_err_t howdytts_audio_callback(const int16_t *audio_data, size_t sampl
         s_app_state.current_audio_level = vad_result.max_amplitude > 0 ? 
             (float)vad_result.max_amplitude / 32768.0f : 0.0f;
         
-        // Update UI with audio level and VAD state
-        ui_manager_update_audio_level((int)(s_app_state.current_audio_level * 100));
+        // Update audio visualization with enhanced feedback
+        ui_manager_update_mic_level((int)(s_app_state.current_audio_level * 100), 
+                                  s_app_state.vad_initialized ? vad_result.confidence : 0.0f);
         
-        // Enhanced UI feedback based on VAD
+        // Enhanced UI feedback with complete conversation state management
         if (s_app_state.vad_initialized && vad_result.voice_detected) {
             if (vad_result.speech_started) {
                 ESP_LOGI(TAG, "🗣️ Speech detected! Confidence: %.2f", vad_result.confidence);
-                ui_manager_set_state(UI_STATE_LISTENING);
+                
+                // Use enhanced conversation state update
+                char speech_status[128];
+                snprintf(speech_status, sizeof(speech_status), 
+                        "Speech detected - confidence %.0f%%", vad_result.confidence * 100);
+                        
+                ui_manager_update_conversation_state(UI_STATE_SPEECH_DETECTED,
+                                                    "Voice input detected",
+                                                    speech_status,
+                                                    (int)(s_app_state.current_audio_level * 100),
+                                                    0, // No TTS during listening
+                                                    vad_result.confidence,
+                                                    s_app_state.wake_word_confidence);
             }
             
-            // Show VAD confidence in UI
-            if (vad_result.high_confidence) {
-                char confidence_msg[64];
-                snprintf(confidence_msg, sizeof(confidence_msg), 
-                        "Voice detected (%.0f%% confidence)", vad_result.confidence * 100);
-                ui_manager_update_status(confidence_msg);
-            }
+            // Continuous VAD confidence updates during speech
+            ui_manager_update_mic_level((int)(s_app_state.current_audio_level * 100), 
+                                      vad_result.confidence);
+                                      
         } else if (s_app_state.vad_initialized && vad_result.speech_ended) {
-            ESP_LOGI(TAG, "🤫 Speech ended");
-            ui_manager_set_state(UI_STATE_PROCESSING);
+            ESP_LOGI(TAG, "🤫 Speech ended - transitioning to processing");
+            
+            ui_manager_update_conversation_state(UI_STATE_PROCESSING,
+                                                "Processing your request...",
+                                                "Speech analysis complete",
+                                                0, // No more mic input
+                                                0, // No TTS yet
+                                                0.0f, // No VAD during processing
+                                                -1.0f); // Wake word not applicable
         }
         
         // Update device status with VAD metrics
@@ -259,24 +367,67 @@ static esp_err_t howdytts_audio_callback(const int16_t *audio_data, size_t sampl
     return ret;
 }
 
-// TTS Audio event callback
+// TTS Audio event callback with conversation context and echo cancellation
 static void tts_audio_event_callback(tts_audio_event_t event, const void *data, size_t data_len, void *user_data)
 {
     switch (event) {
         case TTS_AUDIO_EVENT_STARTED:
-            ESP_LOGI(TAG, "🔊 TTS playback started");
-            ui_manager_set_state(UI_STATE_SPEAKING);
-            ui_manager_update_status("Playing TTS response...");
+            ESP_LOGI(TAG, "🔊 TTS playback started - activating simultaneous I2S mode");
+            
+            // Enhanced TTS start with conversation state management
+            ui_manager_update_conversation_state(UI_STATE_SPEAKING,
+                                                "Howdy is responding...",
+                                                "TTS audio playback started",
+                                                0, // No mic input during TTS
+                                                50, // Initial TTS level
+                                                0.0f, // No VAD during TTS
+                                                -1.0f); // Wake word not applicable
+            
+            // Switch to simultaneous I2S mode for full-duplex operation
+            dual_i2s_set_mode(DUAL_I2S_MODE_SIMULTANEOUS);
+            dual_i2s_start();
+            
+            // Notify VAD and wake word systems of TTS start for echo cancellation
+            if (s_app_state.vad_initialized && s_app_state.vad_handle) {
+                enhanced_vad_set_tts_audio_level(s_app_state.vad_handle, 0.8f, NULL);
+            }
+            if (s_app_state.wake_word_initialized && s_app_state.wake_word_handle) {
+                esp32_p4_wake_word_set_tts_level(s_app_state.wake_word_handle, 0.8f);
+            }
             break;
             
         case TTS_AUDIO_EVENT_FINISHED:
             ESP_LOGI(TAG, "✅ TTS playback finished");
-            ui_manager_set_state(UI_STATE_LISTENING);
-            ui_manager_update_status("Ready for voice input");
+            
+            // Enhanced TTS completion with conversation state
+            ui_manager_update_conversation_state(UI_STATE_CONVERSATION_ACTIVE,
+                                                "Ready for your response",
+                                                "TTS playback complete",
+                                                0, // Reset mic level
+                                                0, // Reset TTS level
+                                                0.0f, // Ready for new VAD
+                                                -1.0f); // Ready for wake word
+            
+            // Notify VAD and wake word systems of TTS end
+            if (s_app_state.vad_initialized && s_app_state.vad_handle) {
+                enhanced_vad_set_tts_audio_level(s_app_state.vad_handle, 0.0f, NULL);
+            }
+            if (s_app_state.wake_word_initialized && s_app_state.wake_word_handle) {
+                esp32_p4_wake_word_set_tts_level(s_app_state.wake_word_handle, 0.0f);
+            }
+            
+            // Return to listening context after TTS
+            update_conversation_context(VAD_CONVERSATION_LISTENING);
             break;
             
         case TTS_AUDIO_EVENT_CHUNK_PLAYED:
             ESP_LOGV(TAG, "TTS chunk played (%zu bytes)", data_len);
+            
+            // Update TTS level based on chunk size for dynamic visualization
+            int tts_level = (int)((float)data_len / 1024.0f * 100); // Rough level based on chunk size
+            if (tts_level > 100) tts_level = 100;
+            
+            ui_manager_update_tts_level(tts_level, 0.0f); // No progress info available
             break;
             
         case TTS_AUDIO_EVENT_BUFFER_EMPTY:
@@ -285,8 +436,19 @@ static void tts_audio_event_callback(tts_audio_event_t event, const void *data, 
             
         case TTS_AUDIO_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ TTS playback error");
-            ui_manager_set_state(UI_STATE_ERROR);
-            ui_manager_update_status("TTS playback error");
+            
+            // Show TTS error with recovery information
+            ui_manager_show_error_with_recovery("TTS Audio",
+                                              "TTS playback failed - audio system error",
+                                              5); // 5 second recovery estimate
+            
+            // Reset TTS level on error
+            if (s_app_state.vad_initialized && s_app_state.vad_handle) {
+                enhanced_vad_set_tts_audio_level(s_app_state.vad_handle, 0.0f, NULL);
+            }
+            if (s_app_state.wake_word_initialized && s_app_state.wake_word_handle) {
+                esp32_p4_wake_word_set_tts_level(s_app_state.wake_word_handle, 0.0f);
+            }
             break;
             
         default:
@@ -352,7 +514,11 @@ static void howdytts_event_callback(const howdytts_event_data_t *event, void *us
     switch (event->event_type) {
         case HOWDYTTS_EVENT_DISCOVERY_STARTED:
             ESP_LOGI(TAG, "🔍 HowdyTTS discovery started");
-            ui_manager_update_status("Discovering HowdyTTS servers...");
+            
+            ui_manager_update_conversation_state(UI_STATE_DISCOVERING,
+                                                "Discovering HowdyTTS servers...",
+                                                "Scanning network for voice servers",
+                                                0, 0, 0.0f, -1.0f);
             break;
             
         case HOWDYTTS_EVENT_SERVER_DISCOVERED:
@@ -362,57 +528,134 @@ static void howdytts_event_callback(const howdytts_event_data_t *event, void *us
             
             // Auto-select first discovered server
             if (!s_app_state.howdytts_connected) {
+                ESP_LOGI(TAG, "🔗 Auto-selecting first discovered server for connection");
                 s_app_state.selected_server = event->data.server_info;
                 
                 char status_msg[128];
                 snprintf(status_msg, sizeof(status_msg), "Found %s - connecting...", 
                         event->data.server_info.hostname);
-                ui_manager_update_status(status_msg);
+                        
+                char detail_msg[128];
+                snprintf(detail_msg, sizeof(detail_msg), "Server: %s", 
+                        event->data.server_info.ip_address);
+                
+                ui_manager_update_conversation_state(UI_STATE_CONNECTING,
+                                                    status_msg,
+                                                    detail_msg,
+                                                    0, 0, 0.0f, -1.0f);
                 
                 // Connect to server
-                howdytts_connect_to_server(&s_app_state.selected_server);
+                ESP_LOGI(TAG, "🚀 Calling howdytts_connect_to_server()");
+                esp_err_t ret = howdytts_connect_to_server(&s_app_state.selected_server);
+                if (ret != ESP_OK) {
+                    ESP_LOGE(TAG, "❌ Connection failed: %s", esp_err_to_name(ret));
+                    ui_manager_show_error_with_recovery("Network", "HowdyTTS connection failed", 10);
+                }
+            } else {
+                ESP_LOGI(TAG, "⚠️  Already connected - ignoring discovered server");
             }
             break;
             
         case HOWDYTTS_EVENT_CONNECTION_ESTABLISHED:
-            ESP_LOGI(TAG, "✅ Connected to HowdyTTS server");
+            ESP_LOGI(TAG, "✅ CONNECTION_ESTABLISHED event received - server connection successful");
             s_app_state.howdytts_connected = true;
-            ui_manager_update_status("Connected to HowdyTTS");
-            ui_manager_set_state(UI_STATE_IDLE);
+            
+            // Show successful connection with server details
+            char connection_msg[128];
+            snprintf(connection_msg, sizeof(connection_msg), "Connected to %s", 
+                    s_app_state.selected_server.hostname);
+                    
+            ui_manager_update_conversation_state(UI_STATE_REGISTERED,
+                                                connection_msg,
+                                                "Voice assistant ready",
+                                                0, 0, 0.0f, -1.0f);
+                                                
+            // After 2 seconds, transition to idle listening state
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            
+            ui_manager_update_conversation_state(UI_STATE_IDLE,
+                                                "Say 'Hey Howdy' to start",
+                                                "Listening for wake word",
+                                                0, 0, 0.0f, -1.0f);
             
             // Initialize VAD feedback client now that we have server connection
             if (!s_app_state.vad_feedback_connected && s_app_state.selected_server.ip_address[0] != '\0') {
+                ESP_LOGI(TAG, "🔗 Initializing VAD feedback client for %s", s_app_state.selected_server.ip_address);
                 init_vad_feedback_client(s_app_state.selected_server.ip_address);
+            }
+            
+            // TTS audio playback is handled by the VAD feedback client WebSocket connection
+            ESP_LOGI(TAG, "🔊 TTS audio playback ready via VAD feedback WebSocket connection");
+            
+            // Start continuous audio streaming for wake word detection
+            ESP_LOGI(TAG, "🎤 Starting continuous audio streaming for wake word detection");
+            esp_err_t stream_ret = howdytts_start_audio_streaming();
+            if (stream_ret != ESP_OK) {
+                ESP_LOGE(TAG, "❌ Failed to start audio streaming: %s", esp_err_to_name(stream_ret));
+                ui_manager_update_status("Audio streaming failed");
+            } else {
+                ESP_LOGI(TAG, "✅ Audio streaming started successfully");
             }
             break;
             
         case HOWDYTTS_EVENT_CONNECTION_LOST:
             ESP_LOGW(TAG, "❌ Lost connection to HowdyTTS server");
             s_app_state.howdytts_connected = false;
-            ui_manager_update_status("Connection lost - reconnecting...");
-            ui_manager_set_state(UI_STATE_ERROR);
+            
+            ui_manager_show_error_with_recovery("Network",
+                                              "HowdyTTS connection lost - reconnecting",
+                                              15); // 15 second reconnection estimate
             break;
             
         case HOWDYTTS_EVENT_AUDIO_STREAMING_STARTED:
             ESP_LOGI(TAG, "🎵 Audio streaming started");
-            ui_manager_set_state(UI_STATE_LISTENING);
+            
+            ui_manager_update_conversation_state(UI_STATE_IDLE, // Stay in idle until wake word
+                                                "Audio streaming active",
+                                                "Microphone ready for 'Hey Howdy'",
+                                                0, 0, 0.0f, -1.0f);
             break;
             
         case HOWDYTTS_EVENT_AUDIO_STREAMING_STOPPED:
             ESP_LOGI(TAG, "🔇 Audio streaming stopped");
-            ui_manager_set_state(UI_STATE_IDLE);
+            
+            ui_manager_update_conversation_state(UI_STATE_IDLE,
+                                                "Audio streaming paused",
+                                                "Microphone temporarily disabled",
+                                                0, 0, 0.0f, -1.0f);
             break;
             
         case HOWDYTTS_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ HowdyTTS error: %s", event->message);
-            ui_manager_update_status("HowdyTTS Error");
-            ui_manager_set_state(UI_STATE_ERROR);
+            
+            ui_manager_show_error_with_recovery("HowdyTTS",
+                                              strlen(event->message) > 0 ? event->message : "Unknown HowdyTTS error",
+                                              10); // 10 second recovery estimate
             break;
             
         default:
             ESP_LOGD(TAG, "HowdyTTS event: %s", event->message);
             break;
     }
+}
+
+// Helper function to update conversation context for VAD and wake word detection
+static void update_conversation_context(vad_conversation_context_t new_context)
+{
+    // Update VAD conversation context
+    if (s_app_state.vad_initialized && s_app_state.vad_handle) {
+        enhanced_vad_set_conversation_context(s_app_state.vad_handle, new_context);
+    }
+    
+    // Update wake word conversation context  
+    if (s_app_state.wake_word_initialized && s_app_state.wake_word_handle) {
+        esp32_p4_wake_word_set_conversation_context(s_app_state.wake_word_handle, new_context);
+    }
+    
+    ESP_LOGI(TAG, "🎯 Conversation context updated: %s",
+            new_context == VAD_CONVERSATION_IDLE ? "idle" :
+            new_context == VAD_CONVERSATION_LISTENING ? "listening" :
+            new_context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing");
 }
 
 static void howdytts_va_state_callback(howdytts_va_state_t va_state, const char *state_text, void *user_data)
@@ -423,60 +666,100 @@ static void howdytts_va_state_callback(howdytts_va_state_t va_state, const char 
             va_state == HOWDYTTS_VA_STATE_THINKING ? "thinking" :
             va_state == HOWDYTTS_VA_STATE_SPEAKING ? "speaking" : "ending");
     
-    // Map HowdyTTS states to UI states
+    // Enhanced voice assistant state mapping with complete conversation management
     switch (va_state) {
         case HOWDYTTS_VA_STATE_WAITING:
-            ui_manager_set_state(UI_STATE_IDLE);
-            ui_manager_update_status("Tap to speak");
+            ui_manager_update_conversation_state(UI_STATE_IDLE,
+                                                "Say 'Hey Howdy' to start",
+                                                "Voice assistant ready",
+                                                0, 0, 0.0f, -1.0f);
+            update_conversation_context(VAD_CONVERSATION_IDLE);
             break;
             
         case HOWDYTTS_VA_STATE_LISTENING:
-            ui_manager_set_state(UI_STATE_LISTENING);
-            ui_manager_update_status("Listening...");
+            ui_manager_update_conversation_state(UI_STATE_LISTENING,
+                                                "Listening for your voice...",
+                                                "Speak your request",
+                                                20, // Some mic activity expected
+                                                0, // No TTS
+                                                0.5f, // Moderate VAD confidence
+                                                -1.0f); // Wake word already detected
+            update_conversation_context(VAD_CONVERSATION_LISTENING);
             break;
             
         case HOWDYTTS_VA_STATE_THINKING:
-            ui_manager_set_state(UI_STATE_PROCESSING);
-            ui_manager_update_status("Processing...");
+            ui_manager_update_conversation_state(UI_STATE_THINKING,
+                                                "Processing your request...",
+                                                "AI is thinking about your question",
+                                                0, // No mic input during processing
+                                                0, // No TTS yet
+                                                0.0f, // No VAD during processing
+                                                -1.0f); // Wake word not applicable
+            update_conversation_context(VAD_CONVERSATION_PROCESSING);
             break;
             
         case HOWDYTTS_VA_STATE_SPEAKING:
-            ui_manager_set_state(UI_STATE_SPEAKING);
-            if (state_text) {
-                char status_msg[128];
-                snprintf(status_msg, sizeof(status_msg), "Speaking: %.50s%s", 
-                        state_text, strlen(state_text) > 50 ? "..." : "");
-                ui_manager_update_status(status_msg);
+            // Format speaking status with response text preview
+            char speaking_status[128];
+            char speaking_detail[128];
+            
+            if (state_text && strlen(state_text) > 0) {
+                snprintf(speaking_status, sizeof(speaking_status), "Howdy is responding...");
+                snprintf(speaking_detail, sizeof(speaking_detail), "%.60s%s", 
+                        state_text, strlen(state_text) > 60 ? "..." : "");
             } else {
-                ui_manager_update_status("Speaking...");
+                snprintf(speaking_status, sizeof(speaking_status), "Howdy is speaking...");
+                snprintf(speaking_detail, sizeof(speaking_detail), "Generating voice response");
             }
+            
+            ui_manager_update_conversation_state(UI_STATE_RESPONDING,
+                                                speaking_status,
+                                                speaking_detail,
+                                                0, // No mic input during TTS
+                                                70, // TTS audio level
+                                                0.0f, // No VAD during TTS
+                                                -1.0f); // Wake word not applicable
+            update_conversation_context(VAD_CONVERSATION_SPEAKING);
             break;
             
         case HOWDYTTS_VA_STATE_ENDING:
-            ui_manager_set_state(UI_STATE_IDLE);
-            ui_manager_update_status("Conversation ended");
+            ui_manager_update_conversation_state(UI_STATE_SESSION_ENDING,
+                                                "Conversation ending...",
+                                                "Session complete - goodbye!",
+                                                0, 0, 0.0f, -1.0f);
+            update_conversation_context(VAD_CONVERSATION_IDLE);
+            
+            // After 3 seconds, return to idle listening
+            vTaskDelay(pdMS_TO_TICKS(3000));
+            ui_manager_update_conversation_state(UI_STATE_IDLE,
+                                                "Say 'Hey Howdy' to start again",
+                                                "Ready for new conversation",
+                                                0, 0, 0.0f, -1.0f);
             break;
     }
 }
 
-// Voice activation callback from UI
+// Voice activation callback from UI - now used to end conversation
 static void voice_activation_callback(bool start_voice)
 {
+    // Touch button now ends conversation instead of starting it
     if (start_voice) {
-        ESP_LOGI(TAG, "🎤 Voice activation triggered by touch");
+        ESP_LOGI(TAG, "🛑 Touch detected - ending conversation");
         
         if (s_app_state.howdytts_connected) {
-            // Start audio streaming to HowdyTTS server
-            howdytts_start_audio_streaming();
-            ui_manager_set_state(UI_STATE_LISTENING);
+            // Signal conversation end but keep streaming for wake word detection
+            ui_manager_update_status("Conversation ended - Listening for 'Hey Howdy'");
+            ui_manager_set_state(UI_STATE_IDLE);
+            
+            // Note: Audio streaming continues for wake word detection
+            // TODO: Send special packet to notify server conversation ended
+            ESP_LOGI(TAG, "User ended conversation - continuing wake word detection");
         } else {
-            ESP_LOGW(TAG, "Cannot start voice capture - not connected to HowdyTTS server");
+            ESP_LOGW(TAG, "Not connected to HowdyTTS server");
             ui_manager_update_status("Not connected to server");
         }
-    } else {
-        ESP_LOGI(TAG, "🔇 Voice activation ended");
-        howdytts_stop_audio_streaming();
     }
+    // Button release no longer does anything
 }
 
 // WiFi connection monitoring task
@@ -505,6 +788,10 @@ static void wifi_monitor_task(void *pvParameters)
                 
                 // Start HowdyTTS server discovery
                 if (!s_app_state.discovery_completed) {
+                    ESP_LOGI(TAG, "🧪 Running audio stream test first to verify UDP connection...");
+                    vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for WiFi to stabilize
+                    run_audio_stream_test();
+                    
                     ESP_LOGI(TAG, "Starting HowdyTTS discovery");
                     howdytts_discovery_start(15000);
                     s_app_state.discovery_completed = true;
@@ -554,17 +841,18 @@ static esp_err_t howdytts_integration_init_app(void)
 {
     ESP_LOGI(TAG, "🔧 Initializing HowdyTTS integration with Enhanced VAD and Wake Word Detection");
     
-    // Initialize Enhanced VAD first
+    // Initialize Enhanced VAD with conversation-aware configuration
     enhanced_vad_config_t vad_config;
-    enhanced_vad_get_default_config(16000, &vad_config);
+    enhanced_vad_get_conversation_config(16000, &vad_config);
     
-    // Optimize VAD for ESP32-P4 HowdyScreen environment
-    vad_config.amplitude_threshold = 2500;          // Adjust for microphone sensitivity
-    vad_config.silence_threshold_ms = 1200;         // 1.2s silence detection
-    vad_config.min_voice_duration_ms = 300;         // 300ms minimum voice
-    vad_config.snr_threshold_db = 8.0f;            // 8dB SNR requirement
-    vad_config.consistency_frames = 5;              // 5-frame consistency
-    vad_config.confidence_threshold = 0.7f;         // 70% confidence minimum
+    // Fine-tune for ESP32-P4 HowdyScreen environment and <50ms target latency
+    vad_config.amplitude_threshold = 2300;          // Slightly more sensitive for faster response
+    vad_config.silence_threshold_ms = 1000;         // 1.0s silence for faster conversation flow
+    vad_config.min_voice_duration_ms = 250;         // 250ms minimum for balance of speed/accuracy
+    vad_config.snr_threshold_db = 7.5f;            // Slightly lower SNR for faster response
+    vad_config.consistency_frames = 4;              // Reduce consistency frames for speed
+    vad_config.confidence_threshold = 0.65f;        // Balanced confidence for conversation flow
+    vad_config.processing_mode = 1;                 // Optimized mode for performance
     
     s_app_state.vad_handle = enhanced_vad_init(&vad_config);
     if (s_app_state.vad_handle) {
@@ -575,19 +863,21 @@ static esp_err_t howdytts_integration_init_app(void)
         s_app_state.vad_initialized = false;
     }
     
-    // Initialize Wake Word Detection Engine
+    // Initialize Wake Word Detection Engine with conversation-aware configuration
     esp32_p4_wake_word_config_t wake_word_config;
-    esp32_p4_wake_word_get_default_config(&wake_word_config);
+    esp32_p4_wake_word_get_conversation_config(&wake_word_config);
     
-    // Optimize wake word detection for "Hey Howdy"
+    // Optimize for ESP32-P4 HowdyScreen and <50ms target latency
     wake_word_config.sample_rate = 16000;            // 16kHz audio
     wake_word_config.frame_size = 320;               // 20ms frames
-    wake_word_config.energy_threshold = 3000;        // Moderate sensitivity
-    wake_word_config.confidence_threshold = 0.65f;   // 65% confidence required
-    wake_word_config.silence_timeout_ms = 2000;      // 2 second silence timeout
+    wake_word_config.energy_threshold = 2900;        // Slightly more sensitive for idle wake word detection
+    wake_word_config.confidence_threshold = 0.62f;   // Lower confidence for faster response in conversation
+    wake_word_config.silence_timeout_ms = 1600;      // Reduced timeout for conversation flow
     wake_word_config.enable_adaptation = true;       // Enable adaptive learning
-    wake_word_config.adaptation_rate = 0.05f;        // 5% adaptation rate
-    wake_word_config.max_detections_per_min = 12;    // Rate limiting
+    wake_word_config.adaptation_rate = 0.06f;        // Slightly faster adaptation
+    wake_word_config.max_detections_per_min = 15;    // Allow more frequent detections in conversation
+    wake_word_config.pattern_frames = 18;            // Reduce pattern frames for speed
+    wake_word_config.consistency_frames = 3;         // Reduce consistency for speed
     
     s_app_state.wake_word_handle = esp32_p4_wake_word_init(&wake_word_config);
     if (s_app_state.wake_word_handle) {
@@ -611,7 +901,7 @@ static esp_err_t howdytts_integration_init_app(void)
     if (s_app_state.vad_initialized) {
         enhanced_udp_audio_config_t udp_config;
         udp_audio_config_t basic_udp_config = {
-            .server_ip = "192.168.1.100",  // Will be updated by discovery
+            .server_ip = "192.168.86.39",   // Updated to match discovered server
             .server_port = 8000,            // HowdyTTS UDP audio port
             .local_port = 0,                // Auto-assign local port
             .buffer_size = 2048,
@@ -640,8 +930,8 @@ static esp_err_t howdytts_integration_init_app(void)
     // Configure HowdyTTS integration
     howdytts_integration_config_t howdytts_config = {
         .device_id = "esp32p4-howdyscreen-001",
-        .device_name = "Office HowdyScreen",
-        .room = "office",
+        .device_name = CONFIG_HOWDY_DEVICE_NAME,
+        .room = CONFIG_HOWDY_DEVICE_ROOM,
         .protocol_mode = HOWDYTTS_PROTOCOL_UDP_ONLY, // Start with UDP only
         .audio_format = HOWDYTTS_AUDIO_PCM_16,       // Raw PCM streaming
         .sample_rate = 16000,                        // 16kHz audio
@@ -669,8 +959,50 @@ static esp_err_t howdytts_integration_init_app(void)
     }
     
     ESP_LOGI(TAG, "✅ HowdyTTS integration initialized successfully");
-    ESP_LOGI(TAG, "🎯 VAD Mode: %s", s_app_state.vad_initialized ? "Enhanced Edge VAD" : "Basic Audio");
-    ESP_LOGI(TAG, "🎤 Wake Word: %s", s_app_state.wake_word_initialized ? "Hey Howdy Detection Active" : "Disabled");
+    ESP_LOGI(TAG, "🎯 VAD Mode: %s", s_app_state.vad_initialized ? "Enhanced Conversation-Aware VAD (<50ms target)" : "Basic Audio");
+    ESP_LOGI(TAG, "🎤 Wake Word: %s", s_app_state.wake_word_initialized ? "Hey Howdy Detection with Echo Cancellation" : "Disabled");
+    ESP_LOGI(TAG, "⚡ Performance: Optimized for <50ms end-to-end conversation latency");
+    ESP_LOGI(TAG, "🔊 Echo Suppression: Hardware (ES7210) + Software (Conversation-Aware)");
+    
+    // Initialize Dual I2S Manager for full-duplex audio
+    ESP_LOGI(TAG, "🎵 Initializing Dual I2S Manager for full-duplex operation");
+    dual_i2s_config_t dual_i2s_config;
+    
+    // Configure microphone I2S (ES7210 + echo cancellation)
+    dual_i2s_config.mic_config.sample_rate = 16000;
+    dual_i2s_config.mic_config.bits_per_sample = I2S_DATA_BIT_WIDTH_16BIT;
+    dual_i2s_config.mic_config.channel_format = I2S_SLOT_MODE_MONO;
+    dual_i2s_config.mic_config.bck_pin = 12;    // BSP_I2S_SCLK
+    dual_i2s_config.mic_config.ws_pin = 10;     // BSP_I2S_LCLK
+    dual_i2s_config.mic_config.data_in_pin = 11; // BSP_I2S_DSIN
+    
+    // Configure speaker I2S (ES8311)
+    dual_i2s_config.speaker_config.sample_rate = 16000;
+    dual_i2s_config.speaker_config.bits_per_sample = I2S_DATA_BIT_WIDTH_16BIT;
+    dual_i2s_config.speaker_config.channel_format = I2S_SLOT_MODE_MONO;
+    dual_i2s_config.speaker_config.bck_pin = 12;    // BSP_I2S_SCLK (shared)
+    dual_i2s_config.speaker_config.ws_pin = 10;     // BSP_I2S_LCLK (shared)
+    dual_i2s_config.speaker_config.data_out_pin = 9; // BSP_I2S_DOUT
+    
+    // Performance optimized DMA configuration for minimal latency (<30ms target)
+    dual_i2s_config.dma_buf_count = 4;        // Reduced buffer count for lower latency
+    dual_i2s_config.dma_buf_len = 160;        // 10ms buffers (160 samples @ 16kHz) for <30ms total latency
+    
+    esp_err_t dual_i2s_ret = dual_i2s_init(&dual_i2s_config);
+    if (dual_i2s_ret == ESP_OK) {
+        ESP_LOGI(TAG, "✅ Dual I2S Manager initialized");
+        ESP_LOGI(TAG, "🎤 Microphone: ES7210 with echo cancellation");
+        ESP_LOGI(TAG, "🔊 Speaker: ES8311 for TTS playback");
+        ESP_LOGI(TAG, "⚡ Performance Optimized: 16kHz, 16-bit, mono, 10ms buffers");
+        
+        // Start in microphone-only mode (will switch to simultaneous during TTS)
+        dual_i2s_set_mode(DUAL_I2S_MODE_MIC);
+        dual_i2s_start();
+        ESP_LOGI(TAG, "🎤 Started in microphone mode - ready for wake word detection");
+        
+    } else {
+        ESP_LOGW(TAG, "⚠️ Dual I2S Manager initialization failed: %s", esp_err_to_name(dual_i2s_ret));
+    }
     
     // Initialize TTS Audio Handler for speaker output
     ESP_LOGI(TAG, "🔊 Initializing TTS Audio Handler");
@@ -690,6 +1022,8 @@ static esp_err_t howdytts_integration_init_app(void)
         ESP_LOGI(TAG, "🔊 Audio Format: %luHz, %dch, %d-bit, %.0f%% volume",
                 tts_config.sample_rate, tts_config.channels, 
                 tts_config.bits_per_sample, tts_config.volume * 100);
+        
+        ESP_LOGI(TAG, "🔊 TTS will use Dual I2S Manager for speaker output");
     } else {
         ESP_LOGW(TAG, "⚠️ TTS Audio Handler initialization failed: %s", esp_err_to_name(tts_ret));
     }
@@ -716,8 +1050,8 @@ esp_err_t init_vad_feedback_client(const char *server_ip)
     vad_feedback_get_default_config(server_ip, "esp32p4-howdyscreen-001", &feedback_config);
     
     // Customize configuration
-    strncpy(feedback_config.device_name, "ESP32-P4 HowdyScreen", sizeof(feedback_config.device_name) - 1);
-    strncpy(feedback_config.room, "office", sizeof(feedback_config.room) - 1);
+    strncpy(feedback_config.device_name, CONFIG_HOWDY_DEVICE_NAME, sizeof(feedback_config.device_name) - 1);
+    strncpy(feedback_config.room, CONFIG_HOWDY_DEVICE_ROOM, sizeof(feedback_config.room) - 1);
     feedback_config.enable_wake_word_feedback = true;
     feedback_config.enable_threshold_adaptation = true;
     feedback_config.enable_training_mode = false;  // Start in normal mode
@@ -887,12 +1221,29 @@ void app_main(void)
     xTaskCreate(stats_task, "stats_task", 4096, NULL, 2, NULL);
     xTaskCreate(wifi_monitor_task, "wifi_monitor", 4096, NULL, 1, NULL);
     
+    // Start performance monitoring task for real-time latency tracking
+    BaseType_t perf_task_ret = xTaskCreatePinnedToCore(
+        performance_monitoring_task,
+        "perf_monitor",
+        4096,      // Stack size
+        NULL,      // Parameters
+        2,         // Low priority (background monitoring)
+        NULL,      // Task handle
+        0          // Core 0
+    );
+    
+    if (perf_task_ret == pdPASS) {
+        ESP_LOGI(TAG, "✅ Performance monitoring task started - 30s reporting interval");
+    } else {
+        ESP_LOGW(TAG, "⚠️ Failed to start performance monitoring task");
+    }
+    
     ESP_LOGI(TAG, "🎯 Phase 6 initialization complete!");
     ESP_LOGI(TAG, "");
     ESP_LOGI(TAG, "=== HowdyTTS Integration Ready ===");
     ESP_LOGI(TAG, "Protocol: Native UDP (PCM streaming)");
     ESP_LOGI(TAG, "Device: %s", "esp32p4-howdyscreen-001");
-    ESP_LOGI(TAG, "Audio: 16kHz/16-bit PCM, 20ms frames");
+    ESP_LOGI(TAG, "Audio: 16kHz/16-bit PCM, 10ms frames (optimized for <30ms latency)");
     ESP_LOGI(TAG, "Memory: <10KB audio streaming overhead");
     ESP_LOGI(TAG, "UI: Touch-to-talk with visual feedback");
     ESP_LOGI(TAG, "");

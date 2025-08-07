@@ -6,6 +6,8 @@
  */
 
 #include "howdytts_network_integration.h"
+#include "udp_audio_streamer.h"
+#include "dual_i2s_manager.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -124,15 +126,35 @@ static void set_connection_state(howdytts_connection_state_t new_state)
                     connection_state_to_string(old_state),
                     connection_state_to_string(new_state));
             
-            // Notify callback
+            // Notify callback with appropriate event type based on state
             if (s_howdytts_state.callbacks.event_callback) {
                 howdytts_event_data_t event = {
-                    .event_type = HOWDYTTS_EVENT_CONNECTION_ESTABLISHED,
                     .data.connection_state = new_state,
                     .timestamp = esp_timer_get_time() / 1000
                 };
-                snprintf(event.message, sizeof(event.message), 
-                        "Connection state changed to %s", connection_state_to_string(new_state));
+                
+                // Set appropriate event type based on new state
+                switch (new_state) {
+                    case HOWDYTTS_STATE_DISCOVERING:
+                        event.event_type = HOWDYTTS_EVENT_DISCOVERY_STARTED;
+                        snprintf(event.message, sizeof(event.message), "Discovery started");
+                        break;
+                    case HOWDYTTS_STATE_CONNECTED:
+                        event.event_type = HOWDYTTS_EVENT_CONNECTION_ESTABLISHED;
+                        snprintf(event.message, sizeof(event.message), "Connection established");
+                        break;
+                    case HOWDYTTS_STATE_DISCONNECTED:
+                    case HOWDYTTS_STATE_ERROR:
+                        event.event_type = HOWDYTTS_EVENT_CONNECTION_LOST;
+                        snprintf(event.message, sizeof(event.message), "Connection lost: %s", connection_state_to_string(new_state));
+                        break;
+                    default:
+                        // For other states (CONNECTING, STREAMING), just log but don't send events
+                        ESP_LOGD(TAG, "State transition to %s (no event sent)", connection_state_to_string(new_state));
+                        xSemaphoreGive(s_howdytts_state.state_mutex);
+                        return;
+                }
+                
                 s_howdytts_state.callbacks.event_callback(&event, s_howdytts_state.callbacks.user_data);
             }
         }
@@ -354,33 +376,56 @@ static esp_err_t send_discovery_request(void)
         return ESP_ERR_INVALID_STATE;
     }
     
+    const char *discovery_msg = HOWDYTTS_DISCOVERY_REQUEST;
     struct sockaddr_in broadcast_addr;
     memset(&broadcast_addr, 0, sizeof(broadcast_addr));
     broadcast_addr.sin_family = AF_INET;
     broadcast_addr.sin_port = htons(HOWDYTTS_DISCOVERY_PORT);
-    broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
     
-    const char *discovery_msg = HOWDYTTS_DISCOVERY_REQUEST;
+    // Try multiple broadcast addresses to work around router restrictions
+    // 1. Global broadcast (255.255.255.255)
+    broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
     int sent = sendto(s_howdytts_state.discovery_socket, discovery_msg, strlen(discovery_msg), 0,
                      (struct sockaddr*)&broadcast_addr, sizeof(broadcast_addr));
-    
-    if (sent < 0) {
-        ESP_LOGE(TAG, "Failed to send discovery request: errno %d", errno);
-        return ESP_FAIL;
+    if (sent > 0) {
+        ESP_LOGI(TAG, "Sent discovery request to 255.255.255.255:8001");
     }
     
-    ESP_LOGI(TAG, "Sent discovery request to broadcast address");
+    // 2. Try subnet broadcast (e.g., 192.168.86.255 for 192.168.86.x network)
+    // Get our IP to determine subnet
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif) {
+        esp_netif_ip_info_t ip_info;
+        if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+            // Calculate subnet broadcast address
+            uint32_t subnet_broadcast = (ip_info.ip.addr & ip_info.netmask.addr) | ~ip_info.netmask.addr;
+            broadcast_addr.sin_addr.s_addr = subnet_broadcast;
+            
+            sent = sendto(s_howdytts_state.discovery_socket, discovery_msg, strlen(discovery_msg), 0,
+                         (struct sockaddr*)&broadcast_addr, sizeof(broadcast_addr));
+            if (sent > 0) {
+                char addr_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &broadcast_addr.sin_addr, addr_str, sizeof(addr_str));
+                ESP_LOGI(TAG, "Sent discovery request to subnet broadcast %s:8001", addr_str);
+            }
+        }
+    }
+    
+    // Future: Could add direct unicast to known server IPs if needed
     return ESP_OK;
 }
 
 static esp_err_t handle_discovery_response(const char *response, const char *from_ip)
 {
+    ESP_LOGI(TAG, "🔍 Processing discovery response: '%s' from %s", response, from_ip);
+    
     // Check if this is a HowdyTTS server response
     if (strncmp(response, "HOWDYTTS_SERVER", 15) != 0) {
+        ESP_LOGW(TAG, "Not a HowdyTTS server response, ignoring: %s", response);
         return ESP_OK; // Not a HowdyTTS server, ignore
     }
     
-    ESP_LOGI(TAG, "Discovered HowdyTTS server at %s: %s", from_ip, response);
+    ESP_LOGI(TAG, "✅ Discovered HowdyTTS server at %s: %s", from_ip, response);
     
     // Parse server info from response
     howdytts_server_info_t server_info = {0};
@@ -430,6 +475,11 @@ static esp_err_t handle_discovery_response(const char *response, const char *fro
         if (!found && s_howdytts_state.discovered_server_count < 8) {
             s_howdytts_state.discovered_servers[s_howdytts_state.discovered_server_count] = server_info;
             s_howdytts_state.discovered_server_count++;
+            ESP_LOGI(TAG, "📥 Added new server to list: %s (total: %d)", from_ip, (int)s_howdytts_state.discovered_server_count);
+        } else if (found) {
+            ESP_LOGI(TAG, "🔄 Updated existing server: %s", from_ip);
+        } else {
+            ESP_LOGW(TAG, "Cannot add server %s: list full (%d/8)", from_ip, (int)s_howdytts_state.discovered_server_count);
         }
         
         xSemaphoreGive(s_howdytts_state.state_mutex);
@@ -474,6 +524,23 @@ static void discovery_task(void *pvParameters)
         return;
     }
     
+    // Bind socket to ensure we can receive responses
+    struct sockaddr_in bind_addr;
+    memset(&bind_addr, 0, sizeof(bind_addr));
+    bind_addr.sin_family = AF_INET;
+    bind_addr.sin_addr.s_addr = INADDR_ANY;
+    bind_addr.sin_port = 0;  // Let system choose port
+    
+    if (bind(s_howdytts_state.discovery_socket, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
+        ESP_LOGE(TAG, "Failed to bind discovery socket: %s", strerror(errno));
+        close(s_howdytts_state.discovery_socket);
+        set_connection_state(HOWDYTTS_STATE_ERROR);
+        vTaskDelete(NULL);
+        return;
+    }
+    
+    ESP_LOGI(TAG, "Discovery socket bound and ready for responses");
+    
     // Set receive timeout
     struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
     setsockopt(s_howdytts_state.discovery_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
@@ -508,7 +575,12 @@ static void discovery_task(void *pvParameters)
             char from_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &from_addr.sin_addr, from_ip, INET_ADDRSTRLEN);
             
+            ESP_LOGI(TAG, "📡 Received discovery response from %s:%d - '%s'", 
+                     from_ip, ntohs(from_addr.sin_port), response_buffer);
+            
             handle_discovery_response(response_buffer, from_ip);
+        } else if (received < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            ESP_LOGW(TAG, "Discovery recvfrom error: %s", strerror(errno));
         }
         
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -561,10 +633,22 @@ static esp_err_t create_audio_packet(const int16_t *audio_data, size_t samples,
 // Audio Streaming Task
 static void audio_streaming_task(void *pvParameters)
 {
-    ESP_LOGI(TAG, "Audio streaming task started");
+    ESP_LOGI(TAG, "Audio streaming task started - capturing audio from I2S");
     
-    const TickType_t frame_delay = pdMS_TO_TICKS(20); // 20ms frame interval
+    const TickType_t frame_delay = pdMS_TO_TICKS(20); // 20ms frame interval (320 samples at 16kHz)
     TickType_t last_wake_time = xTaskGetTickCount();
+    
+    // Audio capture buffer - 320 samples for 20ms at 16kHz
+    const size_t samples_per_frame = 320;
+    int16_t audio_buffer[samples_per_frame];
+    size_t bytes_read = 0;
+    
+    uint32_t packets_sent = 0;
+    uint32_t capture_errors = 0;
+    uint32_t send_errors = 0;
+    
+    ESP_LOGI(TAG, "Audio streaming: %zu samples per frame, %dms intervals", 
+             samples_per_frame, 20);
     
     while (s_howdytts_state.streaming_active) {
         vTaskDelayUntil(&last_wake_time, frame_delay);
@@ -576,8 +660,36 @@ static void audio_streaming_task(void *pvParameters)
             break;
         }
         
-        // Audio streaming is handled by the callback mechanism
-        // This task mainly monitors the streaming state
+        // Capture audio from I2S microphone using Dual I2S Manager
+        esp_err_t capture_ret = dual_i2s_read_mic(audio_buffer, samples_per_frame, &bytes_read, 10);
+        
+        if (capture_ret == ESP_OK && bytes_read > 0) {
+            size_t samples_read = bytes_read / sizeof(int16_t);
+            
+            // Create and send audio packet to HowdyTTS server via UDP
+            esp_err_t send_ret = udp_audio_send(audio_buffer, samples_read);
+            
+            if (send_ret == ESP_OK) {
+                packets_sent++;
+                
+                // Log progress every 5 seconds (250 packets)
+                if (packets_sent % 250 == 0) {
+                    ESP_LOGI(TAG, "📊 Audio streaming: %lu packets sent, %lu errors", 
+                             packets_sent, capture_errors + send_errors);
+                }
+            } else {
+                send_errors++;
+                if (send_errors % 50 == 0) { // Log every 50 send errors
+                    ESP_LOGW(TAG, "❌ Audio send error #%lu: %s", send_errors, esp_err_to_name(send_ret));
+                }
+            }
+        } else {
+            capture_errors++;
+            if (capture_errors % 50 == 0) { // Log every 50 capture errors
+                ESP_LOGW(TAG, "❌ Audio capture error #%lu: %s (bytes: %zu)", 
+                         capture_errors, esp_err_to_name(capture_ret), bytes_read);
+            }
+        }
     }
     
     ESP_LOGI(TAG, "Audio streaming task ended");

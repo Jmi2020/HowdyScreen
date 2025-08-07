@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esp_err.h"
-#include "driver/i2s.h"
+#include "driver/i2s_std.h"
 #include "driver/gpio.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -29,8 +29,8 @@ typedef struct {
         gpio_num_t ws_pin;      // Word select
         gpio_num_t data_in_pin; // Data input
         uint32_t sample_rate;   // Sample rate (16000 Hz)
-        i2s_bits_per_sample_t bits_per_sample;
-        i2s_channel_fmt_t channel_format;
+        i2s_data_bit_width_t bits_per_sample;
+        i2s_slot_mode_t channel_format;
     } mic_config;
     
     // Speaker I2S configuration (I2S_NUM_1) 
@@ -39,8 +39,8 @@ typedef struct {
         gpio_num_t ws_pin;      // Word select  
         gpio_num_t data_out_pin;// Data output
         uint32_t sample_rate;   // Sample rate (16000 Hz)
-        i2s_bits_per_sample_t bits_per_sample;
-        i2s_channel_fmt_t channel_format;
+        i2s_data_bit_width_t bits_per_sample;
+        i2s_slot_mode_t channel_format;
     } speaker_config;
     
     // DMA configuration
@@ -48,6 +48,19 @@ typedef struct {
     uint16_t dma_buf_len;       // DMA buffer length
     
 } dual_i2s_config_t;
+
+/**
+ * @brief Performance metrics structure for real-time monitoring
+ */
+typedef struct {
+    float average_processing_time_us;   // Average processing time per operation
+    uint32_t max_processing_time_us;    // Maximum processing time recorded
+    uint32_t total_operations;          // Total number of operations
+    uint32_t buffer_underruns;          // Number of buffer underrun events
+    uint32_t mode_switches;             // Number of mode switch operations
+    uint32_t estimated_audio_latency_ms; // Estimated total audio pipeline latency
+    size_t memory_usage_bytes;          // Total memory usage by I2S system
+} dual_i2s_performance_metrics_t;
 
 /**
  * @brief Initialize dual I2S system for ESP32-P4
@@ -165,6 +178,21 @@ esp_err_t dual_i2s_get_stats(uint32_t *mic_samples_read,
                              uint32_t *speaker_samples_written,
                              uint32_t *mic_errors,
                              uint32_t *speaker_errors);
+
+/**
+ * @brief Get real-time performance metrics for latency optimization
+ * 
+ * @param metrics Output structure for performance data
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t dual_i2s_get_performance_metrics(dual_i2s_performance_metrics_t *metrics);
+
+/**
+ * @brief Reset performance counters for fresh measurements
+ * 
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t dual_i2s_reset_performance_counters(void);
 
 #ifdef __cplusplus
 }

@@ -25,6 +25,18 @@ extern "C" {
 #define ENHANCED_VAD_ENABLE_SPECTRAL_ANALYSIS   (1 << 1)
 #define ENHANCED_VAD_ENABLE_CONSISTENCY_CHECK   (1 << 2)
 #define ENHANCED_VAD_ENABLE_SNR_ANALYSIS        (1 << 3)
+#define ENHANCED_VAD_ENABLE_CONVERSATION_AWARE  (1 << 4)
+#define ENHANCED_VAD_ENABLE_ECHO_CANCELLATION   (1 << 5)
+
+/**
+ * @brief Conversation context for VAD behavior adaptation
+ */
+typedef enum {
+    VAD_CONVERSATION_IDLE,      // Waiting for wake word - high sensitivity
+    VAD_CONVERSATION_LISTENING, // Active listening - balanced sensitivity
+    VAD_CONVERSATION_SPEAKING,  // TTS playing - reduced sensitivity for echo cancellation
+    VAD_CONVERSATION_PROCESSING // Processing - maintain current behavior
+} vad_conversation_context_t;
 
 /**
  * @brief Enhanced VAD configuration
@@ -50,6 +62,15 @@ typedef struct {
     // Consistency checking (Layer 3)  
     uint8_t consistency_frames;         // Frames for consistency check (3-7)
     float confidence_threshold;         // Overall confidence threshold (0.5-0.8)
+    
+    // Conversation-aware configuration (Layer 4)
+    struct {
+        uint16_t idle_threshold_multiplier;      // Multiplier for idle state (e.g., 0.8 for higher sensitivity)
+        uint16_t listening_threshold_multiplier; // Multiplier for listening state (1.0 for normal)
+        uint16_t speaking_threshold_multiplier;  // Multiplier for speaking state (e.g., 1.5 for lower sensitivity)
+        uint16_t echo_suppression_db;           // Echo suppression in dB during TTS playback
+        uint16_t tts_fade_time_ms;              // Time to fade VAD sensitivity during TTS start/stop
+    } conversation;
     
     // Feature enable flags
     uint32_t feature_flags;             // Combination of ENHANCED_VAD_ENABLE_* flags
@@ -84,6 +105,11 @@ typedef struct {
     uint8_t detection_quality;         // Quality score (0-255)
     bool high_confidence;              // True if high confidence detection
     uint32_t frames_processed;         // Total frames processed this session
+    
+    // Conversation-aware results  
+    vad_conversation_context_t conversation_context; // Current conversation context
+    float context_adapted_threshold;   // Threshold after conversation context adaptation
+    bool echo_suppression_active;      // True if echo suppression is currently active
 } enhanced_vad_result_t;
 
 /**
@@ -200,6 +226,57 @@ esp_err_t enhanced_vad_set_processing_mode(enhanced_vad_handle_t handle, uint8_t
  */
 esp_err_t enhanced_vad_to_basic_result(const enhanced_vad_result_t *enhanced_result, 
                                      vad_result_t* basic_result);
+
+/**
+ * @brief Set conversation context for adaptive VAD behavior
+ * 
+ * Optimizes VAD behavior based on conversation state:
+ * - IDLE: High sensitivity for wake word detection
+ * - LISTENING: Balanced sensitivity for speech detection  
+ * - SPEAKING: Reduced sensitivity with echo cancellation during TTS
+ * - PROCESSING: Maintain current behavior
+ * 
+ * @param handle Enhanced VAD handle
+ * @param context Conversation context
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t enhanced_vad_set_conversation_context(enhanced_vad_handle_t handle, 
+                                              vad_conversation_context_t context);
+
+/**
+ * @brief Get current conversation context
+ * 
+ * @param handle Enhanced VAD handle
+ * @return vad_conversation_context_t Current context
+ */
+vad_conversation_context_t enhanced_vad_get_conversation_context(enhanced_vad_handle_t handle);
+
+/**
+ * @brief Notify VAD of TTS audio level for echo cancellation
+ * 
+ * When TTS is playing, the VAD can use this information to suppress
+ * echo and prevent false voice detection from speaker output
+ * 
+ * @param handle Enhanced VAD handle
+ * @param tts_level TTS audio level (0.0-1.0, 0.0 = silent)
+ * @param tts_frequency_profile Optional frequency profile of TTS audio (can be NULL)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t enhanced_vad_set_tts_audio_level(enhanced_vad_handle_t handle, 
+                                         float tts_level, 
+                                         const float *tts_frequency_profile);
+
+/**
+ * @brief Get conversation-aware default configuration
+ * 
+ * Returns default configuration optimized for conversation flow with
+ * appropriate multipliers and echo cancellation settings
+ * 
+ * @param sample_rate Target sample rate
+ * @param config Output configuration with conversation-aware defaults
+ * @return esp_err_t ESP_OK on success  
+ */
+esp_err_t enhanced_vad_get_conversation_config(uint16_t sample_rate, enhanced_vad_config_t *config);
 
 #ifdef __cplusplus
 }

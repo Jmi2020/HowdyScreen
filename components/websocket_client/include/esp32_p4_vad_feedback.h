@@ -14,7 +14,7 @@ extern "C" {
 /**
  * @brief ESP32-P4 VAD Feedback WebSocket Client
  * 
- * WebSocket client to connect to HowdyTTS server port 8001 for receiving
+ * WebSocket client to connect to HowdyTTS server port 8002 for receiving
  * real-time VAD corrections and wake word feedback. Enables adaptive
  * learning and threshold updates based on server validation.
  */
@@ -38,8 +38,8 @@ typedef enum {
  */
 typedef struct {
     // Server connection
-    char server_uri[128];               // WebSocket URI (ws://server:8001/vad_feedback)
-    uint16_t server_port;               // Server port (8001)
+    char server_uri[128];               // WebSocket URI (ws://server:8002/vad_feedback)
+    uint16_t server_port;               // Server port (8002)
     uint32_t connection_timeout_ms;     // Connection timeout (5000ms)
     
     // Client identification
@@ -133,6 +133,7 @@ typedef struct {
     uint32_t checksum;                  // Data integrity checksum
     uint16_t chunk_start_time_ms;       // Start time within session
     uint16_t chunk_duration_ms;         // Duration of this chunk
+    uint8_t pool_index;                 // Pre-allocated buffer pool index (0xFF if malloc'd)
 } vad_feedback_tts_chunk_t;
 
 /**

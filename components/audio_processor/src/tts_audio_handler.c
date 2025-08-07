@@ -1,6 +1,8 @@
 #include "tts_audio_handler.h"
 #include "audio_processor.h"
+#include "dual_i2s_manager.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -30,10 +32,33 @@ static struct {
     
 } s_tts_audio = {0};
 
-// Audio chunk for queue
+// Performance optimized audio chunk for queue with pre-allocated buffers
+#define TTS_HANDLER_CHUNK_POOL_SIZE 6
+#define MAX_TTS_HANDLER_CHUNK_SIZE 1024
+
+// Pre-allocated audio chunk pool for zero-malloc TTS processing
+static struct {
+    uint8_t buffer[MAX_TTS_HANDLER_CHUNK_SIZE];
+    bool in_use;
+    uint64_t alloc_time;
+} s_tts_handler_chunk_pool[TTS_HANDLER_CHUNK_POOL_SIZE] = {0};
+
+// Performance metrics for TTS handler
+static struct {
+    uint32_t total_chunks_processed;
+    uint32_t pool_hits;
+    uint32_t pool_misses;
+    uint64_t total_processing_time_us;
+    uint32_t max_processing_time_us;
+    uint32_t memory_allocation_failures;
+} s_tts_perf_metrics = {0};
+
+// Audio chunk for queue (optimized)
 typedef struct {
     uint8_t *data;
     size_t length;
+    uint8_t pool_index;  // Pool index (0xFF if malloc'd)
+    uint64_t timestamp;  // For performance tracking
 } tts_audio_chunk_t;
 
 // Forward declarations
@@ -156,34 +181,91 @@ esp_err_t tts_audio_play_chunk(const uint8_t *audio_data, size_t data_len)
         return ESP_ERR_INVALID_ARG;
     }
     
-    // Allocate memory for audio chunk
-    uint8_t *chunk_data = malloc(data_len);
-    if (!chunk_data) {
-        ESP_LOGE(TAG, "Failed to allocate memory for audio chunk (%zu bytes)", data_len);
-        return ESP_ERR_NO_MEM;
+    uint64_t start_time = esp_timer_get_time();
+    
+    // Performance optimized memory allocation: try pool first
+    uint8_t *chunk_data = NULL;
+    uint8_t pool_index = 0xFF;
+    
+    if (data_len <= MAX_TTS_HANDLER_CHUNK_SIZE) {
+        // Find available pool buffer
+        for (uint8_t i = 0; i < TTS_HANDLER_CHUNK_POOL_SIZE; i++) {
+            if (!s_tts_handler_chunk_pool[i].in_use) {
+                s_tts_handler_chunk_pool[i].in_use = true;
+                s_tts_handler_chunk_pool[i].alloc_time = start_time;
+                chunk_data = s_tts_handler_chunk_pool[i].buffer;
+                pool_index = i;
+                s_tts_perf_metrics.pool_hits++;
+                break;
+            }
+        }
     }
     
-    // Copy audio data
+    // Fallback to malloc if pool exhausted or chunk too large
+    if (!chunk_data) {
+        chunk_data = malloc(data_len);
+        if (!chunk_data) {
+            ESP_LOGE(TAG, "Failed to allocate memory for audio chunk (%zu bytes)", data_len);
+            s_tts_perf_metrics.memory_allocation_failures++;
+            return ESP_ERR_NO_MEM;
+        }
+        s_tts_perf_metrics.pool_misses++;
+        ESP_LOGV(TAG, "Using malloc for TTS chunk (pool exhausted: %zu bytes)", data_len);
+    }
+    
+    // High-speed memory copy with performance tracking
+    uint64_t copy_start = esp_timer_get_time();
     memcpy(chunk_data, audio_data, data_len);
+    uint64_t copy_time = esp_timer_get_time() - copy_start;
     
-    // Apply volume scaling
+    // Apply volume scaling with optimized processing
+    uint64_t volume_start = esp_timer_get_time();
     apply_volume(chunk_data, data_len, s_tts_audio.config.volume);
+    uint64_t volume_time = esp_timer_get_time() - volume_start;
     
-    // Create chunk structure
+    // Create optimized chunk structure
     tts_audio_chunk_t chunk = {
         .data = chunk_data,
-        .length = data_len
+        .length = data_len,
+        .pool_index = pool_index,
+        .timestamp = start_time
     };
     
-    // Queue audio chunk for playback
+    // Queue audio chunk for playback with performance monitoring
     if (xQueueSend(s_tts_audio.audio_queue, &chunk, pdMS_TO_TICKS(s_tts_audio.config.buffer_timeout_ms)) != pdTRUE) {
         ESP_LOGW(TAG, "Failed to queue audio chunk - buffer full");
-        free(chunk_data);
+        
+        // Cleanup on queue failure
+        if (pool_index != 0xFF) {
+            s_tts_handler_chunk_pool[pool_index].in_use = false;
+        } else {
+            free(chunk_data);
+        }
         s_tts_audio.buffer_underruns++;
         return ESP_ERR_TIMEOUT;
     }
     
-    ESP_LOGD(TAG, "Queued TTS audio chunk: %zu bytes", data_len);
+    // Performance metrics update
+    uint64_t total_time = esp_timer_get_time() - start_time;
+    s_tts_perf_metrics.total_chunks_processed++;
+    s_tts_perf_metrics.total_processing_time_us += total_time;
+    if (total_time > s_tts_perf_metrics.max_processing_time_us) {
+        s_tts_perf_metrics.max_processing_time_us = total_time;
+    }
+    
+    ESP_LOGV(TAG, "🎵 TTS chunk queued: %zu bytes (%.1fμs total: copy=%.1fμs, vol=%.1fμs, pool=%s)", 
+             data_len, (float)total_time, (float)copy_time, (float)volume_time, 
+             pool_index != 0xFF ? "yes" : "no");
+    
+    // Performance reporting every 100 chunks
+    if (s_tts_perf_metrics.total_chunks_processed % 100 == 0) {
+        float avg_time = (float)s_tts_perf_metrics.total_processing_time_us / s_tts_perf_metrics.total_chunks_processed;
+        float pool_hit_rate = (float)s_tts_perf_metrics.pool_hits / 
+                             (s_tts_perf_metrics.pool_hits + s_tts_perf_metrics.pool_misses) * 100.0f;
+        ESP_LOGI(TAG, "🚀 TTS Performance: avg=%.1fμs, max=%luμs, pool=%.1f%%, fails=%lu",
+                avg_time, s_tts_perf_metrics.max_processing_time_us, pool_hit_rate, s_tts_perf_metrics.memory_allocation_failures);
+    }
+    
     return ESP_OK;
 }
 
@@ -324,22 +406,45 @@ static void tts_playback_task(void *pvParameters)
         if (xQueueReceive(s_tts_audio.audio_queue, &chunk, pdMS_TO_TICKS(100)) == pdTRUE) {
             
             if (s_tts_audio.playing) {
-                // Write audio data to processor for playback
-                esp_err_t ret = audio_processor_write_data(chunk.data, chunk.length);
-                if (ret == ESP_OK) {
+                // Write audio data directly to I2S speaker via dual I2S manager
+                size_t samples = chunk.length / sizeof(int16_t);
+                size_t bytes_written = 0;
+                
+                esp_err_t ret = dual_i2s_write_speaker((const int16_t*)chunk.data, samples, 
+                                                      &bytes_written, 100);
+                if (ret == ESP_OK && bytes_written > 0) {
                     s_tts_audio.chunks_played++;
-                    s_tts_audio.bytes_played += chunk.length;
+                    s_tts_audio.bytes_played += bytes_written;
                     
-                    ESP_LOGD(TAG, "Played TTS chunk: %zu bytes", chunk.length);
-                    notify_event(TTS_AUDIO_EVENT_CHUNK_PLAYED, chunk.data, chunk.length);
+                    ESP_LOGD(TAG, "Played TTS chunk: %zu bytes (%zu samples)", bytes_written, samples);
+                    notify_event(TTS_AUDIO_EVENT_CHUNK_PLAYED, chunk.data, bytes_written);
                 } else {
-                    ESP_LOGE(TAG, "Failed to write audio data: %s", esp_err_to_name(ret));
+                    ESP_LOGE(TAG, "Failed to write audio to speaker: %s (bytes_written: %zu)", 
+                            esp_err_to_name(ret), bytes_written);
                     notify_event(TTS_AUDIO_EVENT_ERROR, &ret, sizeof(ret));
+                    
+                    // Fallback: try audio processor write if dual I2S fails
+                    ret = audio_processor_write_data(chunk.data, chunk.length);
+                    if (ret == ESP_OK) {
+                        s_tts_audio.chunks_played++;
+                        s_tts_audio.bytes_played += chunk.length;
+                        ESP_LOGD(TAG, "Fallback to audio processor successful");
+                    }
                 }
             }
             
-            // Free chunk memory
-            free(chunk.data);
+            // Performance optimized cleanup: use pool or free as appropriate
+            if (chunk.pool_index != 0xFF && chunk.pool_index < TTS_HANDLER_CHUNK_POOL_SIZE) {
+                // Return buffer to pool with usage tracking
+                uint64_t usage_time = esp_timer_get_time() - s_tts_handler_chunk_pool[chunk.pool_index].alloc_time;
+                s_tts_handler_chunk_pool[chunk.pool_index].in_use = false;
+                ESP_LOGV(TAG, "Returned TTS chunk to pool (index: %d, used: %.1fμs)", 
+                        chunk.pool_index, (float)usage_time);
+            } else {
+                // Free malloc'd buffer
+                free(chunk.data);
+                ESP_LOGV(TAG, "Freed malloc'd TTS chunk buffer");
+            }
         }
     }
     

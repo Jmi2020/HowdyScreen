@@ -7,9 +7,13 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 #include "cJSON.h"
+#include "mbedtls/base64.h"
 #include <string.h>
 
 static const char *TAG = "VAD_Feedback";
+
+// Forward declarations for internal functions
+static esp_err_t decode_base64_audio_optimized(const char *base64_data, uint8_t **audio_data, size_t *audio_len, uint8_t *pool_index);
 
 // JSON message templates
 #define JSON_WAKE_WORD_TEMPLATE \
@@ -105,11 +109,22 @@ typedef struct {
     size_t json_len;
 } vad_feedback_message_t;
 
-// TTS audio queue item
+// Performance optimized TTS audio queue item with pre-allocated buffers
+#define TTS_AUDIO_CHUNK_POOL_SIZE 8
+#define MAX_TTS_CHUNK_SIZE 1024  // Max audio chunk size in bytes
+
+// Pre-allocated audio chunk pool for zero-malloc audio processing
+static struct {
+    uint8_t buffer[MAX_TTS_CHUNK_SIZE];
+    bool in_use;
+} s_tts_chunk_pool[TTS_AUDIO_CHUNK_POOL_SIZE] = {0};
+
+// TTS audio queue item (optimized for performance)
 typedef struct {
     vad_feedback_tts_chunk_t chunk_data;
     bool session_start;
     bool session_end;
+    uint8_t pool_index;  // Index in pre-allocated pool (0xFF if not using pool)
     vad_feedback_tts_session_t session_info;  // Only valid if session_start is true
     vad_feedback_tts_end_t end_info;          // Only valid if session_end is true
 } tts_audio_queue_item_t;
@@ -563,8 +578,8 @@ esp_err_t vad_feedback_get_default_config(const char *server_ip,
     
     // Build WebSocket URI
     snprintf(config->server_uri, sizeof(config->server_uri), 
-             "ws://%s:8001/vad_feedback", server_ip);
-    config->server_port = 8001;
+             "ws://%s:8002/vad_feedback", server_ip);
+    config->server_port = 8002;
     config->connection_timeout_ms = 5000;
     
     // Device identification
@@ -970,9 +985,17 @@ static void tts_processing_task(void *pvParameters)
                     }
                 }
                 
-                // Free audio data
+                // Performance optimized cleanup: use pool or free as appropriate
                 if (item.chunk_data.audio_data) {
-                    free(item.chunk_data.audio_data);
+                    if (item.pool_index != 0xFF && item.pool_index < TTS_AUDIO_CHUNK_POOL_SIZE) {
+                        // Return buffer to pool
+                        s_tts_chunk_pool[item.pool_index].in_use = false;
+                        ESP_LOGV(TAG, "Returned TTS chunk to pool (index: %d)", item.pool_index);
+                    } else {
+                        // Free malloc'd buffer
+                        free(item.chunk_data.audio_data);
+                        ESP_LOGV(TAG, "Freed malloc'd TTS chunk buffer");
+                    }
                 }
             }
         }
@@ -1155,22 +1178,34 @@ static esp_err_t parse_tts_audio_chunk(const cJSON *json, vad_feedback_tts_chunk
         }
     }
     
-    // Decode base64 audio data
+    // Performance optimized base64 audio data decoding
     cJSON *audio_data = cJSON_GetObjectItem(chunk_info, "audio_data");
     if (cJSON_IsString(audio_data)) {
         const char *base64_data = cJSON_GetStringValue(audio_data);
         size_t audio_len;
-        esp_err_t ret = decode_base64_audio(base64_data, &chunk->audio_data, &audio_len);
+        uint8_t pool_index;
+        
+        uint64_t decode_start = esp_timer_get_time();
+        esp_err_t ret = decode_base64_audio_optimized(base64_data, &chunk->audio_data, &audio_len, &pool_index);
+        uint64_t decode_total = esp_timer_get_time() - decode_start;
+        
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to decode base64 audio data");
+            ESP_LOGE(TAG, "Failed to decode base64 audio data (%.1fμs)", (float)decode_total);
             return ret;
         }
         
+        // Store pool index for cleanup
+        chunk->pool_index = pool_index;
+        
         // Verify chunk size matches decoded data
         if (audio_len != chunk->chunk_size) {
-            ESP_LOGW(TAG, "Chunk size mismatch: expected %d, got %zu", chunk->chunk_size, audio_len);
+            ESP_LOGW(TAG, "Chunk size mismatch: expected %d, got %zu (%.1fμs)", 
+                    chunk->chunk_size, audio_len, (float)decode_total);
             chunk->chunk_size = audio_len;
         }
+        
+        ESP_LOGV(TAG, "🎵 TTS chunk decoded: %zu bytes in %.1fμs (pool: %s)", 
+                audio_len, (float)decode_total, pool_index != 0xFF ? "yes" : "no");
     } else {
         ESP_LOGE(TAG, "Missing audio_data in TTS audio chunk");
         return ESP_FAIL;
@@ -1255,8 +1290,8 @@ static esp_err_t parse_tts_audio_end(const cJSON *json, vad_feedback_tts_end_t *
     return ESP_OK;
 }
 
-// Decode base64 audio data
-static esp_err_t decode_base64_audio(const char *base64_data, uint8_t **audio_data, size_t *audio_len)
+// Performance optimized base64 decoding with pre-allocated buffers
+static esp_err_t decode_base64_audio_optimized(const char *base64_data, uint8_t **audio_data, size_t *audio_len, uint8_t *pool_index)
 {
     if (!base64_data || !audio_data || !audio_len) {
         return ESP_ERR_INVALID_ARG;
@@ -1270,32 +1305,72 @@ static esp_err_t decode_base64_audio(const char *base64_data, uint8_t **audio_da
     // Calculate maximum decoded length (base64 expands by ~33%)
     size_t max_decoded_len = (base64_len * 3) / 4;
     
-    // Allocate buffer for decoded audio
-    uint8_t *decoded_buffer = malloc(max_decoded_len);
+    // Try to use pre-allocated pool buffer first for zero-malloc decoding
+    uint8_t *decoded_buffer = NULL;
+    uint8_t selected_pool_index = 0xFF;
+    
+    if (max_decoded_len <= MAX_TTS_CHUNK_SIZE) {
+        // Find available pool buffer
+        for (uint8_t i = 0; i < TTS_AUDIO_CHUNK_POOL_SIZE; i++) {
+            if (!s_tts_chunk_pool[i].in_use) {
+                s_tts_chunk_pool[i].in_use = true;
+                decoded_buffer = s_tts_chunk_pool[i].buffer;
+                selected_pool_index = i;
+                break;
+            }
+        }
+    }
+    
+    // Fallback to malloc if pool is exhausted or chunk too large
     if (!decoded_buffer) {
-        ESP_LOGE(TAG, "Failed to allocate buffer for decoded audio (%zu bytes)", max_decoded_len);
-        return ESP_ERR_NO_MEM;
+        decoded_buffer = malloc(max_decoded_len);
+        if (!decoded_buffer) {
+            ESP_LOGE(TAG, "Failed to allocate buffer for decoded audio (%zu bytes)", max_decoded_len);
+            return ESP_ERR_NO_MEM;
+        }
+        ESP_LOGW(TAG, "Using malloc for TTS chunk (pool exhausted or large chunk: %zu bytes)", max_decoded_len);
     }
     
-    // Simple base64 decode (you may want to use a proper base64 library)
-    // For now, this is a placeholder - implement actual base64 decoding
-    // Note: ESP-IDF provides mbedtls_base64_decode() function
+    // High-performance base64 decoding with mbedtls
+    size_t decoded_len = 0;
+    uint64_t decode_start = esp_timer_get_time();
+    int ret = mbedtls_base64_decode(decoded_buffer, max_decoded_len, &decoded_len,
+                                    (const unsigned char*)base64_data, base64_len);
+    uint64_t decode_time = esp_timer_get_time() - decode_start;
     
-    // Placeholder: assume 1:1 copy for now (this needs proper base64 implementation)
-    size_t decoded_len = base64_len / 2;  // Rough estimate for testing
-    if (decoded_len > max_decoded_len) {
-        decoded_len = max_decoded_len;
+    if (ret != 0) {
+        ESP_LOGE(TAG, "Base64 decode failed: %d (%.1fμs)", ret, (float)decode_time);
+        if (selected_pool_index != 0xFF) {
+            s_tts_chunk_pool[selected_pool_index].in_use = false;
+        } else {
+            free(decoded_buffer);
+        }
+        return ESP_ERR_INVALID_ARG;
     }
     
-    // TODO: Implement proper base64 decoding
-    // For now, fill with dummy audio data for testing
-    memset(decoded_buffer, 0, decoded_len);
+    if (decoded_len == 0) {
+        ESP_LOGW(TAG, "Base64 decode resulted in zero bytes (%.1fμs)", (float)decode_time);
+        if (selected_pool_index != 0xFF) {
+            s_tts_chunk_pool[selected_pool_index].in_use = false;
+        } else {
+            free(decoded_buffer);
+        }
+        return ESP_ERR_INVALID_ARG;
+    }
     
     *audio_data = decoded_buffer;
     *audio_len = decoded_len;
+    if (pool_index) *pool_index = selected_pool_index;
     
-    ESP_LOGV(TAG, "Decoded %zu bytes of base64 audio data", decoded_len);
+    ESP_LOGV(TAG, "🚀 Decoded %zu bytes in %.1fμs (pool: %s)", decoded_len, 
+            (float)decode_time, selected_pool_index != 0xFF ? "yes" : "no");
     return ESP_OK;
+}
+
+// Legacy wrapper for compatibility
+static esp_err_t decode_base64_audio(const char *base64_data, uint8_t **audio_data, size_t *audio_len)
+{
+    return decode_base64_audio_optimized(base64_data, audio_data, audio_len, NULL);
 }
 
 // Queue TTS audio item

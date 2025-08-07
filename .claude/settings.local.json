@@ -42,7 +42,8 @@
       "Bash(echo $IDF_TARGET)",
       "Bash(curl:*)",
       "Bash(/Users/silverlinings/.espressif/python_env/idf5.5_py3.12_env/bin/python3:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

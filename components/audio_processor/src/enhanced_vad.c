@@ -38,6 +38,13 @@ struct enhanced_vad_instance {
     uint8_t frame_buffer_index;       // Current position in circular buffer
     uint8_t filled_frames;            // Number of frames in buffer
     
+    // Conversation-aware state
+    vad_conversation_context_t conversation_context;
+    uint64_t context_change_time;      // Time when context last changed
+    float current_tts_level;           // Current TTS audio level (0.0-1.0)
+    float context_adapted_threshold;   // Threshold after conversation adaptation
+    bool echo_suppression_active;      // Current echo suppression status
+    
     // Performance tracking
     uint64_t total_processing_time_us;
     uint32_t processing_count;
@@ -66,11 +73,21 @@ static const enhanced_vad_config_t DEFAULT_CONFIG = {
     .consistency_frames = 5,           // 5-frame consistency
     .confidence_threshold = 0.6f,      // 60% confidence threshold
     
-    // Enable all features for full mode
+    // Conversation-aware configuration
+    .conversation = {
+        .idle_threshold_multiplier = 80,        // 0.8x - Higher sensitivity for wake word
+        .listening_threshold_multiplier = 100,  // 1.0x - Normal sensitivity
+        .speaking_threshold_multiplier = 150,   // 1.5x - Lower sensitivity during TTS  
+        .echo_suppression_db = 15,             // 15dB echo suppression
+        .tts_fade_time_ms = 200                // 200ms fade time for TTS transitions
+    },
+    
+    // Enable all features including conversation-aware processing
     .feature_flags = ENHANCED_VAD_ENABLE_ADAPTIVE_THRESHOLD | 
                     ENHANCED_VAD_ENABLE_SPECTRAL_ANALYSIS | 
                     ENHANCED_VAD_ENABLE_CONSISTENCY_CHECK |
-                    ENHANCED_VAD_ENABLE_SNR_ANALYSIS,
+                    ENHANCED_VAD_ENABLE_SNR_ANALYSIS |
+                    ENHANCED_VAD_ENABLE_CONVERSATION_AWARE,
     
     .processing_mode = 0               // Full processing mode
 };
@@ -94,6 +111,13 @@ enhanced_vad_handle_t enhanced_vad_init(const enhanced_vad_config_t *config)
     vad->last_process_time = esp_timer_get_time();
     vad->current_noise_floor = config->amplitude_threshold * 0.3f;  // Initial noise floor
     vad->current_threshold = config->amplitude_threshold;
+    
+    // Initialize conversation-aware state
+    vad->conversation_context = VAD_CONVERSATION_IDLE;  // Start in idle state
+    vad->context_change_time = esp_timer_get_time();
+    vad->current_tts_level = 0.0f;
+    vad->context_adapted_threshold = config->amplitude_threshold;
+    vad->echo_suppression_active = false;
     
     // Initialize spectral analysis if enabled
     if (config->feature_flags & ENHANCED_VAD_ENABLE_SPECTRAL_ANALYSIS) {
@@ -165,6 +189,44 @@ esp_err_t enhanced_vad_deinit(enhanced_vad_handle_t handle)
     return ESP_OK;
 }
 
+// Helper function to apply conversation context to threshold
+static void apply_conversation_context(enhanced_vad_handle_t handle)
+{
+    if (!(handle->config.feature_flags & ENHANCED_VAD_ENABLE_CONVERSATION_AWARE)) {
+        handle->context_adapted_threshold = handle->current_threshold;
+        return;
+    }
+    
+    uint16_t multiplier;
+    switch (handle->conversation_context) {
+        case VAD_CONVERSATION_IDLE:
+            multiplier = handle->config.conversation.idle_threshold_multiplier;
+            break;
+        case VAD_CONVERSATION_LISTENING:
+            multiplier = handle->config.conversation.listening_threshold_multiplier;
+            break;
+        case VAD_CONVERSATION_SPEAKING:
+            multiplier = handle->config.conversation.speaking_threshold_multiplier;
+            // Apply additional echo suppression during TTS
+            if (handle->current_tts_level > 0.0f) {
+                float echo_reduction = powf(10.0f, -handle->config.conversation.echo_suppression_db / 20.0f);
+                multiplier = (uint16_t)(multiplier * (1.0f + handle->current_tts_level * (1.0f - echo_reduction)));
+            }
+            break;
+        case VAD_CONVERSATION_PROCESSING:
+        default:
+            multiplier = handle->config.conversation.listening_threshold_multiplier;
+            break;
+    }
+    
+    // Apply context multiplier
+    handle->context_adapted_threshold = (handle->current_threshold * multiplier) / 100;
+    
+    // Apply echo suppression if TTS is active
+    handle->echo_suppression_active = (handle->conversation_context == VAD_CONVERSATION_SPEAKING && 
+                                      handle->current_tts_level > 0.1f);
+}
+
 // Layer 1: Enhanced energy detection with adaptive noise floor
 static esp_err_t process_energy_detection(enhanced_vad_handle_t handle, 
                                          const int16_t *buffer, 
@@ -214,8 +276,22 @@ static esp_err_t process_energy_detection(enhanced_vad_handle_t handle,
     
     result->noise_floor = (uint16_t)handle->current_noise_floor;
     
-    // Basic voice detection
-    bool energy_voice_detected = (max_amplitude > handle->current_threshold);
+    // Apply conversation context to threshold
+    apply_conversation_context(handle);
+    
+    // Use conversation-adapted threshold for voice detection
+    uint16_t effective_threshold = handle->context_adapted_threshold;
+    bool energy_voice_detected = (max_amplitude > effective_threshold);
+    
+    // Additional echo suppression during TTS playback
+    if (handle->echo_suppression_active && handle->current_tts_level > 0.1f) {
+        // Reduce detection confidence during TTS playback
+        float echo_factor = 1.0f - (handle->current_tts_level * 0.5f); // Up to 50% reduction
+        if (energy_voice_detected && echo_factor < 0.8f) {
+            // Require higher amplitude during TTS to confirm voice
+            energy_voice_detected = (max_amplitude > effective_threshold * 1.3f);
+        }
+    }
     
     return energy_voice_detected ? ESP_OK : ESP_FAIL;
 }
@@ -352,7 +428,13 @@ esp_err_t enhanced_vad_process_audio(enhanced_vad_handle_t handle,
     esp_err_t spectral_result = ESP_FAIL;
     bool spectral_decision = false;
     
-    if (handle->config.processing_mode <= 1) { // Full or optimized mode
+    // Skip spectral analysis in high-performance conversation mode to achieve <50ms latency
+    bool is_conversation_mode = (handle->config.feature_flags & ENHANCED_VAD_ENABLE_CONVERSATION_AWARE);
+    bool skip_spectral_for_performance = is_conversation_mode && 
+        (handle->conversation_context == VAD_CONVERSATION_LISTENING || 
+         handle->conversation_context == VAD_CONVERSATION_SPEAKING);
+    
+    if (handle->config.processing_mode <= 1 && !skip_spectral_for_performance) { // Full or optimized mode
         spectral_result = process_spectral_analysis(handle, buffer, samples, result);
         spectral_decision = (spectral_result == ESP_OK);
     }
@@ -362,9 +444,23 @@ esp_err_t enhanced_vad_process_audio(enhanced_vad_handle_t handle,
     if (energy_decision) current_confidence += 0.6f;
     if (spectral_decision) current_confidence += 0.4f;
     
-    // Layer 3: Multi-frame consistency (if enabled)
-    esp_err_t final_result = process_consistency_check(handle, energy_decision, spectral_decision, current_confidence, result);
-    bool voice_detected = (final_result == ESP_OK);
+    // Layer 3: Multi-frame consistency (optimized for conversation mode)
+    esp_err_t final_result;
+    bool voice_detected;
+    
+    // Reduce consistency checking in conversation mode for <50ms latency
+    if (skip_spectral_for_performance && energy_decision && current_confidence > 0.5f) {
+        // Fast path: trust energy detection in conversation mode with sufficient confidence
+        final_result = ESP_OK;
+        voice_detected = true;
+        result->confidence = current_confidence;
+        result->high_confidence = (current_confidence >= 0.6f);
+        result->detection_quality = (uint8_t)(current_confidence * 255);
+    } else {
+        // Normal path: full consistency checking
+        final_result = process_consistency_check(handle, energy_decision, spectral_decision, current_confidence, result);
+        voice_detected = (final_result == ESP_OK);
+    }
     
     // State transition logic
     handle->previous_voice_state = handle->current_voice_state;
@@ -404,6 +500,11 @@ esp_err_t enhanced_vad_process_audio(enhanced_vad_handle_t handle,
     
     // Update result
     result->voice_detected = voice_detected;
+    
+    // Update conversation-aware results
+    result->conversation_context = handle->conversation_context;
+    result->context_adapted_threshold = handle->context_adapted_threshold;
+    result->echo_suppression_active = handle->echo_suppression_active;
     
     // Update running voice duration if currently speaking
     if (voice_detected && handle->voice_start_time > 0) {
@@ -529,6 +630,108 @@ esp_err_t enhanced_vad_to_basic_result(const enhanced_vad_result_t *enhanced_res
     basic_result->max_amplitude = enhanced_result->max_amplitude;
     basic_result->voice_duration_ms = enhanced_result->voice_duration_ms;
     basic_result->silence_duration_ms = enhanced_result->silence_duration_ms;
+    
+    return ESP_OK;
+}
+
+esp_err_t enhanced_vad_set_conversation_context(enhanced_vad_handle_t handle, 
+                                              vad_conversation_context_t context)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    if (handle->conversation_context != context) {
+        ESP_LOGI(TAG, "Conversation context changed: %s -> %s",
+                handle->conversation_context == VAD_CONVERSATION_IDLE ? "idle" :
+                handle->conversation_context == VAD_CONVERSATION_LISTENING ? "listening" :
+                handle->conversation_context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing",
+                context == VAD_CONVERSATION_IDLE ? "idle" :
+                context == VAD_CONVERSATION_LISTENING ? "listening" :
+                context == VAD_CONVERSATION_SPEAKING ? "speaking" : "processing");
+        
+        handle->conversation_context = context;
+        handle->context_change_time = esp_timer_get_time();
+        
+        // Reset TTS level when leaving speaking state
+        if (handle->conversation_context != VAD_CONVERSATION_SPEAKING) {
+            handle->current_tts_level = 0.0f;
+        }
+    }
+    
+    return ESP_OK;
+}
+
+vad_conversation_context_t enhanced_vad_get_conversation_context(enhanced_vad_handle_t handle)
+{
+    if (!handle) {
+        return VAD_CONVERSATION_IDLE;
+    }
+    
+    return handle->conversation_context;
+}
+
+esp_err_t enhanced_vad_set_tts_audio_level(enhanced_vad_handle_t handle, 
+                                         float tts_level, 
+                                         const float *tts_frequency_profile)
+{
+    if (!handle) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Clamp TTS level to valid range
+    tts_level = fmaxf(0.0f, fminf(1.0f, tts_level));
+    
+    if (fabsf(handle->current_tts_level - tts_level) > 0.05f) { // Only log significant changes
+        ESP_LOGD(TAG, "TTS audio level updated: %.2f -> %.2f", handle->current_tts_level, tts_level);
+    }
+    
+    handle->current_tts_level = tts_level;
+    
+    // Automatically set conversation context to speaking when TTS is active
+    if (tts_level > 0.1f && handle->conversation_context != VAD_CONVERSATION_SPEAKING) {
+        enhanced_vad_set_conversation_context(handle, VAD_CONVERSATION_SPEAKING);
+    }
+    
+    // TODO: Use frequency profile for more sophisticated echo cancellation
+    // For now, we use simple energy-based suppression
+    (void)tts_frequency_profile; // Suppress unused parameter warning
+    
+    return ESP_OK;
+}
+
+esp_err_t enhanced_vad_get_conversation_config(uint16_t sample_rate, enhanced_vad_config_t *config)
+{
+    if (!config) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    // Start with default config
+    esp_err_t ret = enhanced_vad_get_default_config(sample_rate, config);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+    
+    // Optimize for conversation flow - more aggressive settings
+    config->silence_threshold_ms = 1000;           // Even faster conversation flow for <50ms latency
+    config->min_voice_duration_ms = 200;           // Reduced minimum for faster response
+    config->confidence_threshold = 0.60f;          // Slightly lower confidence for speed vs accuracy trade-off
+    
+    // Conversation-aware optimization  
+    config->conversation.idle_threshold_multiplier = 75;     // Even higher sensitivity for wake word
+    config->conversation.listening_threshold_multiplier = 100; // Normal sensitivity
+    config->conversation.speaking_threshold_multiplier = 170; // Even lower sensitivity during TTS
+    config->conversation.echo_suppression_db = 18;           // Stronger echo suppression
+    config->conversation.tts_fade_time_ms = 150;            // Faster transitions
+    
+    // Enable conversation-aware processing
+    config->feature_flags |= ENHANCED_VAD_ENABLE_CONVERSATION_AWARE;
+    
+    ESP_LOGI(TAG, "Generated conversation-optimized VAD configuration");
+    ESP_LOGI(TAG, "Idle sensitivity: %d%%, Speaking suppression: %d%%, Echo: %ddB", 
+            100 * 100 / config->conversation.idle_threshold_multiplier,
+            config->conversation.speaking_threshold_multiplier,
+            config->conversation.echo_suppression_db);
     
     return ESP_OK;
 }

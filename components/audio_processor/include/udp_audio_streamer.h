@@ -13,7 +13,7 @@ extern "C" {
  */
 typedef struct {
     const char *server_ip;      // Server IP address
-    uint16_t server_port;       // Server UDP port (typically 8000)
+    uint16_t server_port;       // Server UDP port (typically 8003)
     uint16_t local_port;        // Local UDP port for receiving
     size_t buffer_size;         // UDP buffer size in bytes
     uint32_t packet_size_ms;    // Audio packet duration in ms (e.g., 20ms)

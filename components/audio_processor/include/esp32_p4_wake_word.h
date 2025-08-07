@@ -54,6 +54,15 @@ typedef struct {
     bool enable_adaptation;             // Enable adaptive threshold adjustment
     float adaptation_rate;              // Adaptation rate (0.01-0.1)
     
+    // Conversation-aware configuration
+    struct {
+        bool enable_context_awareness;      // Enable conversation context awareness
+        uint16_t idle_sensitivity_boost;    // Sensitivity boost in idle state (percentage)
+        uint16_t speaking_suppression;      // Suppression during TTS (percentage) 
+        uint16_t echo_rejection_db;         // Echo rejection threshold in dB
+        bool enable_during_conversation;    // Allow wake word during active conversation
+    } conversation;
+    
     // Performance tuning
     uint16_t processing_interval_ms;    // Processing interval (20-50ms)
     uint8_t max_detections_per_min;     // Rate limiting (5-15 per minute)
@@ -91,6 +100,11 @@ typedef struct {
     bool server_validated;               // Server confirmed detection
     bool server_rejected;                // Server rejected detection
     uint32_t server_response_time_ms;    // Server response time
+    
+    // Conversation context
+    vad_conversation_context_t conversation_context; // Current conversation context
+    bool context_suppressed;             // Detection suppressed due to context
+    float echo_suppression_applied;      // Amount of echo suppression applied (0.0-1.0)
 } esp32_p4_wake_word_result_t;
 
 /**
@@ -262,6 +276,54 @@ esp_err_t esp32_p4_wake_word_adapt_threshold(esp32_p4_wake_word_handle_t handle,
  * @return Current wake word state
  */
 esp32_p4_wake_word_state_t esp32_p4_wake_word_get_state(esp32_p4_wake_word_handle_t handle);
+
+/**
+ * @brief Set conversation context for adaptive wake word behavior
+ * 
+ * Adjusts wake word detection sensitivity based on conversation state:
+ * - IDLE: Enhanced sensitivity for wake word detection
+ * - LISTENING: Normal sensitivity during active conversation
+ * - SPEAKING: Reduced sensitivity with echo suppression during TTS
+ * - PROCESSING: Maintain current behavior
+ * 
+ * @param handle Wake word detector handle
+ * @param context Current conversation context
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t esp32_p4_wake_word_set_conversation_context(esp32_p4_wake_word_handle_t handle,
+                                                    vad_conversation_context_t context);
+
+/**
+ * @brief Get current conversation context
+ * 
+ * @param handle Wake word detector handle
+ * @return Current conversation context
+ */
+vad_conversation_context_t esp32_p4_wake_word_get_conversation_context(esp32_p4_wake_word_handle_t handle);
+
+/**
+ * @brief Notify wake word detector of TTS audio level for echo suppression
+ * 
+ * During TTS playback, this helps the wake word detector distinguish between
+ * actual user speech and echo from the speaker output
+ * 
+ * @param handle Wake word detector handle
+ * @param tts_level Current TTS audio level (0.0 = silent, 1.0 = maximum)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t esp32_p4_wake_word_set_tts_level(esp32_p4_wake_word_handle_t handle, 
+                                          float tts_level);
+
+/**
+ * @brief Get conversation-aware default configuration
+ * 
+ * Returns configuration optimized for conversation flow with appropriate
+ * context-aware settings and echo suppression
+ * 
+ * @param config Output configuration structure
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t esp32_p4_wake_word_get_conversation_config(esp32_p4_wake_word_config_t *config);
 
 #ifdef __cplusplus
 }
