@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_timer.h"
+#include "tts_jitter_buffer.h"
 
 static const char *TAG = "AudioProcessor";
 
@@ -43,6 +44,10 @@ static bool s_dual_protocol_mode = false;
 static bool s_websocket_active = true;  // Default to WebSocket
 static uint32_t s_frames_processed = 0;
 static uint64_t s_total_process_time_us = 0;
+
+// TTS jitter buffer for playback
+static tts_jitter_buffer_t *s_tts_jb = NULL;
+static size_t s_frame_samples = 0; // e.g., 320 for 20 ms at 16 kHz
 
 // GPIO definitions for ESP32-P4 + ES8311
 #define I2S_MCLK_GPIO    GPIO_NUM_13
@@ -114,11 +119,41 @@ static void audio_capture_task(void *pvParameters)
 static void audio_playback_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "Audio playback task started");
-    
-    while (s_playback_active) {
-        // This will be implemented when we have playback data
-        vTaskDelay(pdMS_TO_TICKS(10));
+    const TickType_t frame_period = pdMS_TO_TICKS(20); // 20ms cadence
+    TickType_t last_wake = xTaskGetTickCount();
+
+    int16_t *frame = (int16_t *)malloc(s_frame_samples * sizeof(int16_t));
+    if (!frame) {
+        ESP_LOGE(TAG, "Failed to allocate playback frame buffer");
+        vTaskDelete(NULL);
+        return;
     }
+
+    while (s_playback_active) {
+        vTaskDelayUntil(&last_wake, frame_period);
+
+        bool underrun = false;
+        if (!s_tts_jb) {
+            memset(frame, 0, s_frame_samples * sizeof(int16_t));
+            underrun = true;
+        } else {
+            (void)tts_jb_pop_frame(s_tts_jb, frame, &underrun);
+        }
+
+        size_t bytes_written = 0;
+        esp_err_t ret = i2s_channel_write(s_tx_handle, frame,
+                                          s_frame_samples * sizeof(int16_t),
+                                          &bytes_written, pdMS_TO_TICKS(5));
+        if (ret != ESP_OK) {
+            ESP_LOGW(TAG, "I2S write error: %s", esp_err_to_name(ret));
+        }
+
+        if (underrun) {
+            ESP_LOGD(TAG, "Playback underrun: wrote silence frame");
+        }
+    }
+
+    free(frame);
     
     ESP_LOGI(TAG, "Audio playback task stopped");
     vTaskDelete(NULL);
@@ -200,6 +235,19 @@ esp_err_t audio_processor_init(const audio_processor_config_t *config)
         return ESP_ERR_NO_MEM;
     }
     
+    // Derive frame size for 20 ms playout
+    s_frame_samples = s_config.sample_rate / 50; // 20 ms
+    if (s_frame_samples == 0) {
+        s_frame_samples = 320; // default safety for 16kHz
+    }
+
+    // Create jitter buffer for playback: target 6, capacity 12 frames
+    s_tts_jb = tts_jb_create(s_frame_samples, 6, 12);
+    if (!s_tts_jb) {
+        ESP_LOGE(TAG, "Failed to create TTS jitter buffer");
+        return ESP_ERR_NO_MEM;
+    }
+
     s_initialized = true;
     ESP_LOGI(TAG, "Audio processor initialized successfully");
     
@@ -377,18 +425,27 @@ esp_err_t audio_processor_release_buffer(void)
 
 esp_err_t audio_processor_write_data(const uint8_t *data, size_t length)
 {
-    if (!s_initialized || !s_playback_active) {
+    if (!s_initialized) {
         return ESP_ERR_INVALID_STATE;
     }
-    
-    size_t bytes_written = 0;
-    esp_err_t ret = i2s_channel_write(s_tx_handle, data, length, &bytes_written, pdMS_TO_TICKS(100));
-    
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "I2S write error: %s", esp_err_to_name(ret));
-        return ret;
+    if (!data || length == 0) {
+        return ESP_ERR_INVALID_ARG;
     }
-    
+
+    if (!s_tts_jb) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Enqueue into jitter buffer; ensure 16-bit alignment
+    if (length % 2 != 0) {
+        length -= 1; // drop odd byte if any
+    }
+    size_t samples = length / sizeof(int16_t);
+    size_t accepted = tts_jb_push(s_tts_jb, (const int16_t *)data, samples);
+    if (accepted == 0) {
+        return ESP_FAIL;
+    }
+
     return ESP_OK;
 }
 
@@ -470,5 +527,16 @@ esp_err_t audio_processor_get_stats(uint32_t *frames_processed, float *avg_laten
     
     *protocol_active = s_websocket_active ? 1 : 0;
     
+    return ESP_OK;
+}
+
+esp_err_t audio_processor_get_playback_depth(size_t *out_frames)
+{
+    if (!out_frames) return ESP_ERR_INVALID_ARG;
+    if (!s_tts_jb) {
+        *out_frames = 0;
+        return ESP_OK;
+    }
+    *out_frames = tts_jb_depth(s_tts_jb);
     return ESP_OK;
 }

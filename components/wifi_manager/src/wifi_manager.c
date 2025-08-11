@@ -12,6 +12,41 @@
 
 static const char *TAG = "WiFiManager";
 
+static const char *reason_to_str(int reason)
+{
+    switch (reason) {
+        case WIFI_REASON_UNSPECIFIED: return "UNSPECIFIED";
+        case WIFI_REASON_AUTH_EXPIRE: return "AUTH_EXPIRE";
+        case WIFI_REASON_AUTH_LEAVE: return "AUTH_LEAVE";
+        case WIFI_REASON_ASSOC_EXPIRE: return "ASSOC_EXPIRE";
+        case WIFI_REASON_ASSOC_TOOMANY: return "ASSOC_TOOMANY";
+        case WIFI_REASON_NOT_AUTHED: return "NOT_AUTHED";
+        case WIFI_REASON_NOT_ASSOCED: return "NOT_ASSOCED";
+        case WIFI_REASON_ASSOC_LEAVE: return "ASSOC_LEAVE";
+        case WIFI_REASON_ASSOC_NOT_AUTHED: return "ASSOC_NOT_AUTHED";
+        case WIFI_REASON_DISASSOC_PWRCAP_BAD: return "DISASSOC_PWRCAP_BAD";
+        case WIFI_REASON_DISASSOC_SUPCHAN_BAD: return "DISASSOC_SUPCHAN_BAD";
+        case WIFI_REASON_IE_INVALID: return "IE_INVALID";
+        case WIFI_REASON_MIC_FAILURE: return "MIC_FAILURE";
+        case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: return "4WAY_HANDSHAKE_TIMEOUT";
+        case WIFI_REASON_GROUP_KEY_UPDATE_TIMEOUT: return "GTK_UPDATE_TIMEOUT";
+        case WIFI_REASON_IE_IN_4WAY_DIFFERS: return "IE_IN_4WAY_DIFFERS";
+        case WIFI_REASON_GROUP_CIPHER_INVALID: return "GROUP_CIPHER_INVALID";
+        case WIFI_REASON_PAIRWISE_CIPHER_INVALID: return "PAIRWISE_CIPHER_INVALID";
+        case WIFI_REASON_AKMP_INVALID: return "AKMP_INVALID";
+        case WIFI_REASON_UNSUPP_RSN_IE_VERSION: return "UNSUPP_RSN_IE_VERSION";
+        case WIFI_REASON_INVALID_RSN_IE_CAP: return "INVALID_RSN_IE_CAP";
+        case WIFI_REASON_802_1X_AUTH_FAILED: return "802_1X_AUTH_FAILED";
+        case WIFI_REASON_CIPHER_SUITE_REJECTED: return "CIPHER_SUITE_REJECTED";
+        case WIFI_REASON_BEACON_TIMEOUT: return "BEACON_TIMEOUT";
+        case WIFI_REASON_NO_AP_FOUND: return "NO_AP_FOUND";
+        case WIFI_REASON_AUTH_FAIL: return "AUTH_FAIL";
+        case WIFI_REASON_ASSOC_FAIL: return "ASSOC_FAIL";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "HANDSHAKE_TIMEOUT";
+        default: return "UNKNOWN";
+    }
+}
+
 // Event group for WiFi connection
 static EventGroupHandle_t s_wifi_event_group = NULL;
 #define WIFI_CONNECTED_BIT BIT0
@@ -46,8 +81,13 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                 s_wifi_manager.state = WIFI_STATE_CONNECTING;
                 break;
                 
-            case WIFI_EVENT_STA_DISCONNECTED:
-                ESP_LOGI(TAG, "Disconnected from AP");
+            case WIFI_EVENT_STA_DISCONNECTED: {
+                int reason = -1;
+                if (event_data) {
+                    const wifi_event_sta_disconnected_t *disc = (const wifi_event_sta_disconnected_t *)event_data;
+                    reason = disc->reason;
+                }
+                ESP_LOGW(TAG, "Disconnected from AP (reason=%d: %s)", reason, reason_to_str(reason));
                 s_wifi_manager.state = WIFI_STATE_DISCONNECTED;
                 
                 if (s_wifi_manager.retry_count < s_wifi_manager.max_retry) {
@@ -65,6 +105,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                     s_wifi_manager.event_callback(WIFI_EVENT_DISCONNECTED_ID, NULL);
                 }
                 break;
+            }
                 
             case WIFI_EVENT_STA_CONNECTED:
                 ESP_LOGI(TAG, "Connected to AP");
@@ -145,6 +186,12 @@ esp_err_t wifi_manager_init(wifi_event_callback_t event_callback)
                                                         NULL,
                                                         NULL));
     
+    // Apply menuconfig retry setting if available
+#ifdef CONFIG_HOWDY_WIFI_MAX_RETRY
+    s_wifi_manager.max_retry = CONFIG_HOWDY_WIFI_MAX_RETRY;
+#endif
+    ESP_LOGI(TAG, "WiFi retry limit set to %d (from menuconfig)", s_wifi_manager.max_retry);
+
     // Set WiFi mode to station
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     

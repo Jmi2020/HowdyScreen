@@ -47,6 +47,9 @@ typedef struct {
     uint16_t dma_buf_count;     // Number of DMA buffers
     uint16_t dma_buf_len;       // DMA buffer length
     
+    // Pure I2S mode (skips codec initialization to avoid I2C driver conflicts)
+    bool pure_i2s_mode;        // true = skip codec init, false = full codec setup
+    
 } dual_i2s_config_t;
 
 /**
@@ -193,6 +196,37 @@ esp_err_t dual_i2s_get_performance_metrics(dual_i2s_performance_metrics_t *metri
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t dual_i2s_reset_performance_counters(void);
+
+/**
+ * @brief Validate codec states and attempt recovery if needed
+ * 
+ * This function checks if both ES7210 and ES8311 codecs are in a ready state.
+ * If any codec is in an error state, it attempts automatic recovery.
+ * 
+ * @param recover_mic Attempt to recover microphone codec if in error state
+ * @param recover_speaker Attempt to recover speaker codec if in error state
+ * @return esp_err_t ESP_OK if all codecs are ready, error code otherwise
+ */
+esp_err_t dual_i2s_validate_and_recover_codecs(bool recover_mic, bool recover_speaker);
+
+/**
+ * @brief Get current codec states
+ * 
+ * @param es7210_state Output parameter for ES7210 microphone codec state (can be NULL)
+ * @param es8311_state Output parameter for ES8311 speaker codec state (can be NULL)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t dual_i2s_get_codec_states(int *es7210_state, int *es8311_state);
+
+/**
+ * @brief Get default Pure I2S configuration (no codec initialization)
+ * 
+ * This configuration bypasses ES8311 codec initialization to avoid I2C driver conflicts.
+ * Suitable for raw I2S audio streaming without codec processing.
+ * 
+ * @return dual_i2s_config_t Default Pure I2S configuration
+ */
+dual_i2s_config_t dual_i2s_get_pure_config(void);
 
 #ifdef __cplusplus
 }

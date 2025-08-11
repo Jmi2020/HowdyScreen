@@ -8,9 +8,6 @@
 extern "C" {
 #endif
 
-// Forward declaration for audio interface integration
-typedef struct audio_interface_status_t audio_interface_status_t;
-
 // WebSocket client state
 typedef enum {
     WS_CLIENT_STATE_DISCONNECTED = 0,

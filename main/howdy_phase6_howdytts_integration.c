@@ -31,6 +31,7 @@
 #include "lvgl.h"
 
 // Component includes
+#include "audio_interface_coordinator.h"  // Must come first to define audio_interface_status_t
 #include "howdytts_network_integration.h"
 #include "ui_manager.h"
 #include "wifi_manager.h"
@@ -299,18 +300,8 @@ static esp_err_t howdytts_audio_callback(const int16_t *audio_data, size_t sampl
         }
     }
     
-    // Stream audio with VAD and wake word data using enhanced UDP
-    if (s_app_state.vad_initialized && has_wake_word) {
-        // Use wake word enhanced UDP for wake word events
-        ret = enhanced_udp_audio_send_with_wake_word(audio_data, samples, 
-                                                    &vad_result, &wake_word_result);
-    } else if (s_app_state.vad_initialized) {
-        // Use regular enhanced UDP with VAD data
-        ret = enhanced_udp_audio_send_with_vad(audio_data, samples, &vad_result);
-    } else {
-        // Fallback to regular HowdyTTS streaming
-        ret = howdytts_stream_audio(audio_data, samples);
-    }
+    // Stream audio using HowdyTTS native UDP PCM packet (align with server expectations)
+    ret = howdytts_stream_audio(audio_data, samples);
     
     if (ret == ESP_OK) {
         s_app_state.audio_packets_sent++;
@@ -747,12 +738,12 @@ static void voice_activation_callback(bool start_voice)
         ESP_LOGI(TAG, "🛑 Touch detected - ending conversation");
         
         if (s_app_state.howdytts_connected) {
-            // Signal conversation end but keep streaming for wake word detection
+            // Interrupt any ongoing TTS playback immediately
+            audio_interface_interrupt_playback();
+
+            // Update UI and continue wake-word listening
             ui_manager_update_status("Conversation ended - Listening for 'Hey Howdy'");
             ui_manager_set_state(UI_STATE_IDLE);
-            
-            // Note: Audio streaming continues for wake word detection
-            // TODO: Send special packet to notify server conversation ended
             ESP_LOGI(TAG, "User ended conversation - continuing wake word detection");
         } else {
             ESP_LOGW(TAG, "Not connected to HowdyTTS server");
@@ -788,10 +779,7 @@ static void wifi_monitor_task(void *pvParameters)
                 
                 // Start HowdyTTS server discovery
                 if (!s_app_state.discovery_completed) {
-                    ESP_LOGI(TAG, "🧪 Running audio stream test first to verify UDP connection...");
-                    vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for WiFi to stabilize
-                    run_audio_stream_test();
-                    
+                    // Removed pre-discovery AudioStreamTest to avoid I2S pin conflicts
                     ESP_LOGI(TAG, "Starting HowdyTTS discovery");
                     howdytts_discovery_start(15000);
                     s_app_state.discovery_completed = true;
@@ -901,8 +889,8 @@ static esp_err_t howdytts_integration_init_app(void)
     if (s_app_state.vad_initialized) {
         enhanced_udp_audio_config_t udp_config;
         udp_audio_config_t basic_udp_config = {
-            .server_ip = "192.168.86.39",   // Updated to match discovered server
-            .server_port = 8000,            // HowdyTTS UDP audio port
+            .server_ip = "192.168.86.39",   // Placeholder; replaced after discovery
+            .server_port = 8003,            // HowdyTTS UDP audio port (native)
             .local_port = 0,                // Auto-assign local port
             .buffer_size = 2048,
             .packet_size_ms = 20,           // 20ms packets (320 samples)
@@ -964,36 +952,20 @@ static esp_err_t howdytts_integration_init_app(void)
     ESP_LOGI(TAG, "⚡ Performance: Optimized for <50ms end-to-end conversation latency");
     ESP_LOGI(TAG, "🔊 Echo Suppression: Hardware (ES7210) + Software (Conversation-Aware)");
     
-    // Initialize Dual I2S Manager for full-duplex audio
-    ESP_LOGI(TAG, "🎵 Initializing Dual I2S Manager for full-duplex operation");
-    dual_i2s_config_t dual_i2s_config;
+    // Initialize Dual I2S Manager with Pure I2S mode (no codec initialization)
+    ESP_LOGI(TAG, "🟨 Initializing Dual I2S Manager in Pure I2S mode (avoiding I2C driver conflicts)");
+    ESP_LOGW(TAG, "🟨 Pure I2S Mode: ES8311 codec initialization bypassed to prevent I2C driver conflicts");
+    ESP_LOGW(TAG, "🟨 Audio will be RAW I2S data without codec processing");
     
-    // Configure microphone I2S (ES7210 + echo cancellation)
-    dual_i2s_config.mic_config.sample_rate = 16000;
-    dual_i2s_config.mic_config.bits_per_sample = I2S_DATA_BIT_WIDTH_16BIT;
-    dual_i2s_config.mic_config.channel_format = I2S_SLOT_MODE_MONO;
-    dual_i2s_config.mic_config.bck_pin = 12;    // BSP_I2S_SCLK
-    dual_i2s_config.mic_config.ws_pin = 10;     // BSP_I2S_LCLK
-    dual_i2s_config.mic_config.data_in_pin = 11; // BSP_I2S_DSIN
-    
-    // Configure speaker I2S (ES8311)
-    dual_i2s_config.speaker_config.sample_rate = 16000;
-    dual_i2s_config.speaker_config.bits_per_sample = I2S_DATA_BIT_WIDTH_16BIT;
-    dual_i2s_config.speaker_config.channel_format = I2S_SLOT_MODE_MONO;
-    dual_i2s_config.speaker_config.bck_pin = 12;    // BSP_I2S_SCLK (shared)
-    dual_i2s_config.speaker_config.ws_pin = 10;     // BSP_I2S_LCLK (shared)
-    dual_i2s_config.speaker_config.data_out_pin = 9; // BSP_I2S_DOUT
-    
-    // Performance optimized DMA configuration for minimal latency (<30ms target)
-    dual_i2s_config.dma_buf_count = 4;        // Reduced buffer count for lower latency
-    dual_i2s_config.dma_buf_len = 160;        // 10ms buffers (160 samples @ 16kHz) for <30ms total latency
+    // Use Pure I2S configuration to avoid ES8311 I2C driver conflict
+    dual_i2s_config_t dual_i2s_config = dual_i2s_get_pure_config();
     
     esp_err_t dual_i2s_ret = dual_i2s_init(&dual_i2s_config);
     if (dual_i2s_ret == ESP_OK) {
-        ESP_LOGI(TAG, "✅ Dual I2S Manager initialized");
-        ESP_LOGI(TAG, "🎤 Microphone: ES7210 with echo cancellation");
-        ESP_LOGI(TAG, "🔊 Speaker: ES8311 for TTS playback");
-        ESP_LOGI(TAG, "⚡ Performance Optimized: 16kHz, 16-bit, mono, 10ms buffers");
+        ESP_LOGI(TAG, "✅ Dual I2S Manager initialized in Pure I2S mode");
+        ESP_LOGI(TAG, "🟨 Microphone: RAW I2S data (codec bypassed)");
+        ESP_LOGI(TAG, "🟨 Speaker: RAW I2S data (codec bypassed)"); 
+        ESP_LOGI(TAG, "⚡ Performance Optimized: 16kHz, 16-bit, mono, Pure I2S");
         
         // Start in microphone-only mode (will switch to simultaneous during TTS)
         dual_i2s_set_mode(DUAL_I2S_MODE_MIC);

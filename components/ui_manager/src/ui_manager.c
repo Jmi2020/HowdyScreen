@@ -48,6 +48,13 @@ static uint32_t s_touch_start_time = 0;
 #define HOWDY_BG_LISTENING         lv_color_hex(0x0f3460)  // Active blue
 #define HOWDY_BG_SPEECH_DETECTED   lv_color_hex(0x2d5a87)  // Speech recognition
 #define HOWDY_BG_PROCESSING        lv_color_hex(0x533a7b)  // Purple thinking
+#define HOWDY_COLOR_WAVEFORM       lv_color_hex(0x00d1ff)  // Cyan for TTS waveform
+
+// Waveform visualization state
+#define WAVE_SEGMENTS 64
+static uint8_t s_wave_levels[WAVE_SEGMENTS] = {0};
+static uint8_t s_wave_index = 0;
+static lv_obj_t *s_wave_obj = NULL;
 #define HOWDY_BG_SPEAKING          lv_color_hex(0x1e4d72)  // Teal speaking
 #define HOWDY_BG_CONVERSATION      lv_color_hex(0x2a4f3e)  // Green conversation
 #define HOWDY_BG_ERROR             lv_color_hex(0x4a1c1c)  // Dark red
@@ -59,6 +66,11 @@ static uint32_t s_touch_start_time = 0;
 #define HOWDY_COLOR_WAKE_WORD      lv_color_hex(0xe91e63)  // Pink for wake word
 #define HOWDY_COLOR_VAD_HIGH       lv_color_hex(0x2196f3)  // Blue for high VAD
 #define HOWDY_COLOR_VAD_LOW        lv_color_hex(0x9e9e9e)  // Grey for low VAD
+
+// Forward declarations
+static void wave_draw_event_cb(lv_event_t * e);
+static void wave_init(lv_obj_t *parent);
+static void wave_push_level(uint8_t level);
 
 // Enhanced touch gesture handling for round display
 static void gesture_zone_event_cb(lv_event_t * e)
@@ -184,6 +196,9 @@ static void create_audio_visualization(lv_obj_t *parent)
     lv_arc_set_range(s_ui_manager.inner_audio_ring, 0, 100);
     lv_arc_set_value(s_ui_manager.inner_audio_ring, 0);
     lv_obj_remove_style(s_ui_manager.inner_audio_ring, NULL, LV_PART_KNOB);
+
+    // Waveform overlay around inner ring
+    wave_init(parent);
     
     // Wake word detection ring (radius 380px) - initially hidden
     s_ui_manager.wake_word_ring = lv_arc_create(parent);
@@ -275,6 +290,11 @@ static void create_main_screen(void)
     lv_obj_set_style_shadow_opa(s_ui_manager.center_button, LV_OPA_TRANSP, 0);
     lv_obj_set_style_radius(s_ui_manager.center_button, 140, 0);
     lv_obj_add_event_cb(s_ui_manager.center_button, center_button_event_cb, LV_EVENT_ALL, NULL);
+
+    // Label for center button (visual affordance)
+    lv_obj_t *btn_label = lv_label_create(s_ui_manager.center_button);
+    lv_label_set_text(btn_label, LV_SYMBOL_STOP);
+    lv_obj_center(btn_label);
     
     // Microphone icon and confidence meter
     s_ui_manager.mic_icon = lv_label_create(s_ui_manager.main_container);
@@ -765,6 +785,60 @@ static void wake_word_animation_cb(lv_timer_t *timer)
     }
 }
 
+// Wave visualization functions
+static void wave_draw_event_cb(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code != LV_EVENT_DRAW_MAIN) return;
+
+    lv_obj_t *obj = lv_event_get_target(e);
+    lv_draw_ctx_t *draw_ctx = lv_event_get_draw_ctx(e);
+
+    const int cx = obj->coords.x1 + lv_obj_get_width(obj)/2;
+    const int cy = obj->coords.y1 + lv_obj_get_height(obj)/2;
+    const float base_radius = 300.0f;   // around inner ring
+    const float max_amplitude = 30.0f;  // thickness outward
+
+    lv_draw_line_dsc_t dsc;
+    lv_draw_line_dsc_init(&dsc);
+    dsc.color = HOWDY_COLOR_WAVEFORM;
+    dsc.width = 4;
+    dsc.round_start = 1;
+    dsc.round_end = 1;
+
+    for (int i = 0; i < WAVE_SEGMENTS; i++) {
+        float t = (2.0f * 3.1415926f) * ((float)i / (float)WAVE_SEGMENTS);
+        // Recent history: map index so newest at angle 0
+        int idx = (s_wave_index + i) % WAVE_SEGMENTS;
+        float amp = ((float)s_wave_levels[idx] / 100.0f) * max_amplitude;
+        float r0 = base_radius;
+        float r1 = base_radius + amp;
+        lv_point_t p0 = { (lv_coord_t)(cx + r0 * cosf(t)), (lv_coord_t)(cy + r0 * sinf(t)) };
+        lv_point_t p1 = { (lv_coord_t)(cx + r1 * cosf(t)), (lv_coord_t)(cy + r1 * sinf(t)) };
+        if (draw_ctx->draw_line) {
+            draw_ctx->draw_line(draw_ctx, &dsc, &p0, &p1);
+        }
+    }
+}
+
+static void wave_init(lv_obj_t *parent)
+{
+    s_wave_obj = lv_obj_create(parent);
+    lv_obj_set_size(s_wave_obj, 700, 700);
+    lv_obj_center(s_wave_obj);
+    lv_obj_set_style_bg_opa(s_wave_obj, LV_OPA_TRANSP, 0);
+    lv_obj_add_event_cb(s_wave_obj, wave_draw_event_cb, LV_EVENT_ALL, NULL);
+    // Place under character but over rings
+    lv_obj_move_to_index(s_wave_obj, 0);
+}
+
+static void wave_push_level(uint8_t level)
+{
+    s_wave_levels[s_wave_index] = level > 100 ? 100 : level;
+    s_wave_index = (s_wave_index + 1) % WAVE_SEGMENTS;
+    if (s_wave_obj) lv_obj_invalidate(s_wave_obj);
+}
+
 esp_err_t ui_manager_update_conversation_state(ui_state_t state,
                                               const char *status_text,
                                               const char *detail_text,
@@ -1122,6 +1196,8 @@ esp_err_t ui_manager_update_tts_level(int level, float progress)
     
     // Update inner audio ring (TTS output)
     lv_arc_set_value(s_ui_manager.inner_audio_ring, level);
+    // Feed waveform history for visual effect
+    wave_push_level((uint8_t)level);
     
     // Show TTS progress if available (0.0-1.0)
     if (progress >= 0.0f && progress <= 1.0f) {

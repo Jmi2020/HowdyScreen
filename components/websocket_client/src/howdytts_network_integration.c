@@ -552,6 +552,13 @@ static void discovery_task(void *pvParameters)
     
     while (s_howdytts_state.discovery_active && 
            (esp_timer_get_time() / 1000 - discovery_start) < s_howdytts_state.config.discovery_timeout_ms) {
+
+        // Exit early if we connected meanwhile
+        if (s_howdytts_state.connection_state == HOWDYTTS_STATE_CONNECTED ||
+            s_howdytts_state.connection_state == HOWDYTTS_STATE_STREAMING) {
+            ESP_LOGI(TAG, "Discovery aborted: already connected");
+            break;
+        }
         
         uint32_t now = esp_timer_get_time() / 1000;
         
@@ -666,7 +673,7 @@ static void audio_streaming_task(void *pvParameters)
         if (capture_ret == ESP_OK && bytes_read > 0) {
             size_t samples_read = bytes_read / sizeof(int16_t);
             
-            // Create and send audio packet to HowdyTTS server via UDP
+            // Send ESP32-P4 basic UDP packet to server via UDP streamer
             esp_err_t send_ret = udp_audio_send(audio_buffer, samples_read);
             
             if (send_ret == ESP_OK) {
@@ -775,7 +782,7 @@ esp_err_t howdytts_discovery_start(uint32_t timeout_ms)
     s_howdytts_state.discovered_server_count = 0;
     
     // Start discovery task
-    BaseType_t result = xTaskCreate(discovery_task, "howdytts_discovery", 4096, NULL, 5, 
+    BaseType_t result = xTaskCreate(discovery_task, "howdytts_discovery", 8192, NULL, 5, 
                                    &s_howdytts_state.discovery_task);
     
     if (result != pdPASS) {
@@ -896,6 +903,9 @@ esp_err_t howdytts_connect_to_server(const howdytts_server_info_t *server_info)
         return ESP_ERR_INVALID_ARG;
     }
     
+    // Stop discovery if it's still running
+    howdytts_discovery_stop();
+
     ESP_LOGI(TAG, "Connecting to HowdyTTS server %s at %s", 
              server_info->hostname, server_info->ip_address);
     
@@ -1035,9 +1045,25 @@ esp_err_t howdytts_start_audio_streaming(void)
     ESP_LOGI(TAG, "🎵 Starting HowdyTTS audio streaming");
     
     s_howdytts_state.streaming_active = true;
+
+    // Initialize and start UDP audio streamer with discovered server
+    udp_audio_config_t udp_cfg = {
+        .server_ip = s_howdytts_state.connected_server.ip_address,
+        .server_port = s_howdytts_state.connected_server.audio_port,
+        .local_port = 0,
+        .buffer_size = 2048,
+        .packet_size_ms = 20,
+        .enable_compression = false
+    };
+    (void)udp_audio_deinit();
+    if (udp_audio_init(&udp_cfg) == ESP_OK) {
+        udp_audio_start(NULL, NULL);
+    } else {
+        ESP_LOGW(TAG, "UDP audio init failed; streaming may not send packets");
+    }
     
-    // Start audio streaming task
-    BaseType_t result = xTaskCreate(audio_streaming_task, "howdytts_audio", 3072, NULL, 6, 
+    // Start audio streaming task with increased stack size to prevent overflow
+    BaseType_t result = xTaskCreate(audio_streaming_task, "howdytts_audio", 8192, NULL, 6, 
                                    &s_howdytts_state.audio_streaming_task);
     
     if (result != pdPASS) {
@@ -1096,6 +1122,8 @@ esp_err_t howdytts_stop_audio_streaming(void)
         set_connection_state(HOWDYTTS_STATE_CONNECTED);
     }
     
+    // Stop UDP audio streamer
+    udp_audio_stop();
     ESP_LOGI(TAG, "Audio streaming stopped");
     return ESP_OK;
 }

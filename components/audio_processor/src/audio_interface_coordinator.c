@@ -196,6 +196,32 @@ esp_err_t audio_interface_init(const audio_interface_config_t *config,
     return ESP_OK;
 }
 
+esp_err_t audio_interface_interrupt_playback(void)
+{
+    if (!s_audio_interface.initialized) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    ESP_LOGI(TAG, "Interrupting TTS playback and clearing queue");
+
+    // Stop playback task's I2S output immediately
+    audio_processor_stop_playback();
+    s_audio_interface.speaker_active = false;
+
+    // Drain and free any queued TTS chunks
+    if (s_audio_interface.tts_audio_queue) {
+        tts_audio_chunk_t chunk;
+        while (xQueueReceive(s_audio_interface.tts_audio_queue, &chunk, 0) == pdTRUE) {
+            free(chunk.data);
+        }
+    }
+
+    // Update UI state
+    change_state(AUDIO_INTERFACE_STATE_IDLE);
+    
+    return ESP_OK;
+}
+
 esp_err_t audio_interface_deinit(void)
 {
     if (!s_audio_interface.initialized) {

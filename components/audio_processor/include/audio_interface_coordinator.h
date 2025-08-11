@@ -214,6 +214,15 @@ bool audio_interface_is_speaking(void);
 esp_err_t audio_interface_trigger_listening(void);
 
 /**
+ * @brief Interrupt any ongoing TTS playback immediately.
+ *
+ * - Stops audio_processor playback
+ * - Clears any queued TTS chunks
+ * - Leaves microphone/listening state unchanged
+ */
+esp_err_t audio_interface_interrupt_playback(void);
+
+/**
  * @brief Default audio interface configuration for ESP32-P4 HowdyScreen
  */
 #define AUDIO_INTERFACE_DEFAULT_CONFIG() { \

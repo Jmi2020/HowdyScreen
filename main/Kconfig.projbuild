@@ -161,4 +161,41 @@ menu "HowdyScreen Configuration"
                 Enable demo mode to cycle through voice assistant states.
                 Useful for testing without network connection.
     endmenu
+    
+    menu "Debug Settings"
+        config I2C_DEBUG_ENABLED
+            bool "Enable I2C Debug Utilities"
+            default y
+            help
+                Enable comprehensive I2C debugging utilities for codec diagnostics.
+                Includes I2C bus scanning, codec communication verification,
+                and register dump capabilities for ES8311/ES7210 codecs.
+                
+        config I2C_DEBUG_VERBOSE
+            bool "Enable Verbose I2C Debug Output"
+            default n
+            depends on I2C_DEBUG_ENABLED
+            help
+                Enable verbose debug output for all I2C operations.
+                Shows detailed register read/write operations and timing information.
+                Useful for detailed troubleshooting but generates lots of log output.
+                
+        config I2C_DEBUG_AUTO_SCAN
+            bool "Auto-run I2C Scan on Startup"
+            default y
+            depends on I2C_DEBUG_ENABLED
+            help
+                Automatically run I2C bus scan and codec verification during
+                application initialization. Helps identify I2C issues early.
+                Disable if you want to manually trigger diagnostics only.
+                
+        config I2C_DEBUG_REGISTER_DUMPS
+            bool "Include Register Dumps in Auto Scan"
+            default n
+            depends on I2C_DEBUG_AUTO_SCAN
+            help
+                Include full codec register dumps in the automatic startup scan.
+                Provides complete codec state information but increases boot time.
+                Enable only when debugging specific codec configuration issues.
+    endmenu
 endmenu

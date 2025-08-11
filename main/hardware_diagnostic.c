@@ -8,7 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_chip_info.h"
 #include "hal/gpio_hal.h"
@@ -84,24 +84,20 @@ void scan_i2c_bus(void)
 {
     ESP_LOGI(TAG, "=== I2C Bus Scan ===");
     
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_SDA_GPIO,
+    // Use new I2C driver API (compatible with BSP)
+    i2c_master_bus_config_t i2c_bus_config = {
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .i2c_port = I2C_PORT,
         .scl_io_num = I2C_SCL_GPIO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 100000,
+        .sda_io_num = I2C_SDA_GPIO,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
     };
     
-    esp_err_t ret = i2c_param_config(I2C_PORT, &conf);
+    i2c_master_bus_handle_t i2c_bus = NULL;
+    esp_err_t ret = i2c_new_master_bus(&i2c_bus_config, &i2c_bus);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "  FAILED to configure I2C: %s", esp_err_to_name(ret));
-        return;
-    }
-    
-    ret = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "  FAILED to install I2C driver: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "  FAILED to create I2C master bus: %s", esp_err_to_name(ret));
         return;
     }
     
@@ -109,13 +105,22 @@ void scan_i2c_bus(void)
     
     int devices_found = 0;
     for (uint8_t addr = 1; addr < 127; addr++) {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(cmd);
+        // Create temporary I2C device for probing
+        i2c_device_config_t dev_config = {
+            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+            .device_address = addr,
+            .scl_speed_hz = 100000,
+        };
         
-        ret = i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(50));
-        i2c_cmd_link_delete(cmd);
+        i2c_master_dev_handle_t dev_handle;
+        ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &dev_handle);
+        if (ret != ESP_OK) {
+            continue; // Skip this address if device creation fails
+        }
+        
+        // Try to probe the device with a simple transaction
+        uint8_t dummy_data = 0;
+        ret = i2c_master_transmit(dev_handle, &dummy_data, 1, 50);
         
         if (ret == ESP_OK) {
             ESP_LOGI(TAG, "  Found device at address 0x%02X", addr);
@@ -125,6 +130,8 @@ void scan_i2c_bus(void)
                 ESP_LOGI(TAG, "    -> This is the CST9217 touch controller!");
             }
         }
+        
+        i2c_master_bus_rm_device(dev_handle);
     }
     
     if (devices_found == 0) {
@@ -133,7 +140,7 @@ void scan_i2c_bus(void)
         ESP_LOGI(TAG, "  Total devices found: %d", devices_found);
     }
     
-    i2c_driver_delete(I2C_PORT);
+    i2c_del_master_bus(i2c_bus);
     ESP_LOGI(TAG, "  I2C scan complete\n");
 }
 

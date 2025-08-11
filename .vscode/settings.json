@@ -5,7 +5,7 @@
   "idf.openOcdConfigs": [
     "board/esp32p4-builtin.cfg"
   ],
-  "idf.port": "/dev/tty.usbmodem133101",
+  "idf.port": "/dev/tty.usbmodem5AB01647391",
   "idf.toolsPath": "/Users/silverlinings/.espressif",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32p4"

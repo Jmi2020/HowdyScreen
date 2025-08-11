@@ -97,13 +97,25 @@ esp_err_t audio_processor_get_buffer(uint8_t **buffer, size_t *length);
 esp_err_t audio_processor_release_buffer(void);
 
 /**
- * @brief Write audio data for playback
+ * @brief Enqueue audio data for playback (non-blocking)
  * 
- * @param data Audio data to play
- * @param length Length of audio data
+ * Queues raw PCM 16-bit mono data for the playback task. Data may be split
+ * into fixed frame blocks internally (e.g., 20 ms @ 16 kHz = 320 samples).
+ * 
+ * @param data Audio data to play (PCM 16-bit mono)
+ * @param length Length of audio data in bytes
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t audio_processor_write_data(const uint8_t *data, size_t length);
+
+/**
+ * @brief Get current playback queue depth in frames
+ * 
+ * Useful for UI/telemetry to visualize jitter buffer depth.
+ * @param out_frames Pointer to store the number of queued frames
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t audio_processor_get_playback_depth(size_t *out_frames);
 
 /**
  * @brief Configure HowdyTTS audio streaming integration

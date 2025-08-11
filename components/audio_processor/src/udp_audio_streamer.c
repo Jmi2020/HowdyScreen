@@ -40,6 +40,8 @@ static struct {
     uint8_t packet_buffer[UDP_MAX_PACKET_SIZE];
     size_t packet_buffer_used;
     uint32_t samples_per_packet;
+    // Store a safe copy of server IP
+    char server_ip_str[16];
 } s_udp_audio = {
     .send_socket = -1,
     .recv_socket = -1,
@@ -74,8 +76,16 @@ esp_err_t udp_audio_init(const udp_audio_config_t *config)
         return ESP_ERR_NO_MEM;
     }
     
-    // Copy configuration
+    // Copy configuration and take ownership of server IP via internal buffer
     s_udp_audio.config = *config;
+    if (config->server_ip) {
+        strncpy(s_udp_audio.server_ip_str, config->server_ip, sizeof(s_udp_audio.server_ip_str) - 1);
+        s_udp_audio.server_ip_str[sizeof(s_udp_audio.server_ip_str) - 1] = '\0';
+        s_udp_audio.config.server_ip = s_udp_audio.server_ip_str;
+    } else {
+        s_udp_audio.server_ip_str[0] = '\0';
+        s_udp_audio.config.server_ip = s_udp_audio.server_ip_str;
+    }
     
     // Calculate samples per packet based on duration
     s_udp_audio.samples_per_packet = calculate_packet_size(
@@ -86,7 +96,7 @@ esp_err_t udp_audio_init(const udp_audio_config_t *config)
     memset(&s_udp_audio.server_addr, 0, sizeof(s_udp_audio.server_addr));
     s_udp_audio.server_addr.sin_family = AF_INET;
     s_udp_audio.server_addr.sin_port = htons(config->server_port);
-    inet_pton(AF_INET, config->server_ip, &s_udp_audio.server_addr.sin_addr);
+    inet_pton(AF_INET, s_udp_audio.config.server_ip, &s_udp_audio.server_addr.sin_addr);
     
     s_udp_audio.is_initialized = true;
     
@@ -449,8 +459,9 @@ esp_err_t udp_audio_set_server(const char *server_ip, uint16_t server_port)
     inet_pton(AF_INET, server_ip, &s_udp_audio.server_addr.sin_addr);
     
     // Update config
-    strncpy((char*)s_udp_audio.config.server_ip, server_ip, 
-            sizeof(s_udp_audio.config.server_ip) - 1);
+    strncpy(s_udp_audio.server_ip_str, server_ip, sizeof(s_udp_audio.server_ip_str) - 1);
+    s_udp_audio.server_ip_str[sizeof(s_udp_audio.server_ip_str) - 1] = '\0';
+    s_udp_audio.config.server_ip = s_udp_audio.server_ip_str;
     s_udp_audio.config.server_port = server_port;
     
     xSemaphoreGive(s_udp_audio.mutex);

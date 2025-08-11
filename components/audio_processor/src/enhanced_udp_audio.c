@@ -251,7 +251,7 @@ esp_err_t enhanced_udp_audio_send_with_vad(const int16_t *samples,
         s_enhanced_udp_state.current_sequence++,
         samples,
         sample_count,
-        s_enhanced_udp_state.config.basic_config.server_port, // Using port as sample rate placeholder
+        16000, // Fixed sample rate: 16kHz
         vad_result,
         &header
     );
